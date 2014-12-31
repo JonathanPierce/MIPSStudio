@@ -16,7 +16,7 @@
 <textarea id="output" rows="12" cols="100" readonly="readonly"></textarea>
 <h4>Output Information</h4>
 <textarea id="info" rows="8" cols="100" readonly="readonly"></textarea><br /><br />
-<button id="cleanup">cleanup</button> <button id="constants">constants</button> <button id="segment">segment</button>
+<button id="cleanup">cleanup</button> <button id="constants">constants</button> <button id="segment">segment</button> <button id="parse">PARSE</button>
 
 <script type="text/javascript">
     document.getElementById('cleanup').addEventListener('click', function () {
@@ -71,6 +71,24 @@
 
         document.getElementById('info').value = output;
         document.getElementById('output').value = Utils.join_by_prop(result1.text, "text", "\n");
+    });
+
+    document.getElementById('parse').addEventListener('click', function () {
+        var input = document.getElementById('input').value;
+
+        try {
+            var result = MIPSParser.parse(input);
+        } catch (e) {
+            document.getElementById('info').value = "ERROR\nCode: " + ((e.code || e.code === 0) ? e.code : "None") + "\nMessage: " + e.message;
+            return;
+        }
+
+        var output = JSON.stringify(result);
+        console.log("Parse complete:");
+        console.log(result);
+
+        document.getElementById('info').value = "Parse complete! Check your web console!";
+        document.getElementById('output').value = output;
     });
 </script>
 

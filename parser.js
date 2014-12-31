@@ -35,6 +35,9 @@ var MIPSParser = (function () {
             }
             extracted.without = extracted.without.replace(/(.*)\s+$/im, "$1");
 
+            // Escape strings (for now, we'll unescape later)
+            extracted.without = Utils.Parser.escape_strings(extracted.without);
+
             // Are we blank?
             if (extracted.without === "") {
                 continue;
@@ -137,23 +140,23 @@ var MIPSParser = (function () {
                 // Is this an offset?
                 var offset = Utils.Parser.parse_offset(prop);
                 if (offset) {
-                    if (constants[offset.offset] && constants.hasOwnProperty(offset.offset)) {
+                    if (Utils.get(constants, offset.offset)) {
                         offset.offset = constants[offset.offset].toString();
                     }
 
-                    if (regs[offset.reg] && regs.hasOwnProperty(offset.reg)) {
+                    if (Utils.get(regs, offset.reg)) {
                         offset.reg = regs[offset.reg];
                     }
 
                     current[j] = offset.offset + "(" + offset.reg + ")";
                 } else {
                     // Handle constants
-                    if (constants[prop] && constants.hasOwnProperty(prop)) {
+                    if (Utils.get(constants,prop)) {
                         current[j] = constants[prop].toString();
                     }
 
                     // Handle registers
-                    if (regs[prop] && regs.hasOwnProperty(prop)) {
+                    if (Utils.get(regs,prop)) {
                         current[j] = regs[prop];
                     }
                 }
@@ -228,12 +231,14 @@ var MIPSParser = (function () {
             var cleanup_result = cleanup(input);
             var constant_result = parse_constants(cleanup_result);
             var segment_result = segment(constant_result.text);
-            // TODO: Parse text and data
+            
+            // Parse the data
+            var data_result = DataParser.parse(segment_result.data);
 
             return {
                 error: false,
                 constants: constant_result.constants,
-                clean_text: constant_result.text
+                data: data_result
             };
         } catch (e) {
             // Something went wrong! :(
