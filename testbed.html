@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>MIPS Studio Testbed</title>
+    <script type="text/javascript" src="utils.js"></script>
+    <script type="text/javascript" src="data.js"></script>
+    <script type="text/javascript" src="parser.js"></script>
+</head>
+<body>
+
+<h4>Input Assembly</h4>
+<textarea id="input" rows="12" cols="100"></textarea>
+<h4>Processed Assembly</h4>
+<textarea id="output" rows="12" cols="100" readonly="readonly"></textarea>
+<h4>Output Information</h4>
+<textarea id="info" rows="8" cols="100" readonly="readonly"></textarea><br /><br />
+<button id="cleanup">cleanup</button> <button id="constants">constants</button> <button id="segment">segment</button>
+
+<script type="text/javascript">
+    document.getElementById('cleanup').addEventListener('click', function () {
+        var input = document.getElementById('input').value;
+
+        var result = Utils.join_by_prop(MIPSParser.cleanup(input), "text", "\n");
+
+        document.getElementById('output').value = result;
+        document.getElementById('info').value = "";
+    });
+
+    document.getElementById('constants').addEventListener('click', function () {
+        var input = document.getElementById('input').value;
+
+        try {
+            var result = MIPSParser.cleanup(input);
+            result = MIPSParser.parse_constants(result);
+        } catch (e) {
+            document.getElementById('info').value = "ERROR\nCode: " + ((e.code || e.code === 0) ? e.code : "None") + "\nMessage: " + e.message;
+            return;
+        }
+        
+
+        var output = "";
+        var constants = result.constants;
+        for (member in constants) {
+            if (constants.hasOwnProperty(member)) {
+                output += member + " = " + constants[member] + "\n";
+            }
+        }
+
+        document.getElementById('info').value = output;
+        document.getElementById('output').value = Utils.join_by_prop(result.text, "text", "\n");
+    });
+
+    document.getElementById('segment').addEventListener('click', function () {
+        var input = document.getElementById('input').value;
+
+        try {
+            var result = MIPSParser.cleanup(input);
+            result1 = MIPSParser.parse_constants(result);
+            result2 = MIPSParser.segment(result1.text);
+        } catch (e) {
+            document.getElementById('info').value = "ERROR\nCode: " + ((e.code || e.code === 0) ? e.code : "None") + "\nMessage: " + e.message;
+            return;
+        }
+
+        var output = "DATA:\n\n";
+        output += Utils.join_by_prop(result2.data, "text","\n");
+        output += "\n\nTEXT:\n\n";
+        output += Utils.join_by_prop(result2.text, "text", "\n");;
+
+        document.getElementById('info').value = output;
+        document.getElementById('output').value = Utils.join_by_prop(result1.text, "text", "\n");
+    });
+</script>
+
+</body>
+</html>
