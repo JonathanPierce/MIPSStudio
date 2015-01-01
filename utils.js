@@ -26,7 +26,8 @@ var Utils = (function () {
         "Argument '$1' is not compatible with type $2 on line $3.",
         "No arguments were provided to data type $1 on line $2.",
         "Max data segment size exceeded on line $1.",
-        "No match for label '$1' on line $2."
+        "No match for label '$1' on line $2.",
+        "Label '$1' duplicated on line $2."
         ];
 
         var current = error_codes[index];
@@ -328,6 +329,20 @@ var Utils = (function () {
         // Converts a number to a hexadecimal string
         to_hex: function (input) {
             return "0x" + input.toString(16).toUpperCase();
+        },
+
+        // Splits something into n-little endian bytes
+        split_to_bytes: function (input, num_bytes) {
+            var result = [];
+
+            var mask = 0xFF;
+
+            for (var i = 0; i < num_bytes; i++) {
+                result.push(input & mask);
+                input = input >>> 8;
+            }
+
+            return result;
         }
     };
 

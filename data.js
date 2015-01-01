@@ -148,8 +148,23 @@ var DataParser = (function () {
         // Gather all the labels
         for (var i = 0; i < raw.length; i++) {
             var label = raw[i].label;
+
             if (label) {
-                labels[label] = raw[i].base;
+                // Make sure this label declaration is unique
+                if (Utils.get(labels, label)) {
+                    // FAIL
+                    throw Utils.get_error(9, [label, raw[i].line]);
+                }
+
+                // Make sure the label points to the content, not padding
+                var label_addr = raw[i].base;
+                if (raw[i].type === "word") {
+                    label_addr += raw[i].space % 4;
+                }
+                if (raw[i].type === "half") {
+                    label_addr += raw[i].space % 2;
+                }
+                labels[label] = label_addr;
             }
         }
 
@@ -177,18 +192,95 @@ var DataParser = (function () {
 
     // Convert preliminary data to the final data
     var to_final = function (raw) {
-        // TODO
+        var final = {};
+        var address = base_address;
+
+        for (var i = 0; i < raw.length; i++) {
+            var type = raw[i].type;
+            var args = raw[i].args;
+            var base = raw[i].base;
+            var space = raw[i].space;
+
+            // Fill any padding
+            if (type === "word" || type === "half") {
+                var modulus = 4;
+                if (type === "half") {
+                    modulus = 2;
+                }
+
+                var padding = space % modulus;
+                for (var j = 0; j < padding; j++) {
+                    final[Utils.Math.to_hex(address)] = 0;
+                    address++;
+                }
+            }
+
+            // Fill with values
+            if (type === "space" || type === "align") {
+                // We need space 0's
+                for (var j = 0; j < space; j++) {
+                    final[Utils.Math.to_hex(address)] = 0;
+                    address++;
+                }
+            }
+
+            if (type === "word") {
+                // Little endianize each word
+                for (var j = 0; j < args.length; j++) {
+                    var bytes = Utils.Math.split_to_bytes(args[j], 4);
+
+                    for (var k = 0; k < bytes.length; k++) {
+                        final[Utils.Math.to_hex(address)] = bytes[k];
+                        address++;
+                    }
+                }
+            }
+
+            if (type === "half") {
+                // Little endianize each half
+                for (var j = 0; j < args.length; j++) {
+                    var bytes = Utils.Math.split_to_bytes(args[j], 2);
+
+                    for (var k = 0; k < bytes.length; k++) {
+                        final[Utils.Math.to_hex(address)] = bytes[k];
+                        address++;
+                    }
+                }
+            }
+
+            if (type === "byte") {
+                for (var j = 0; j < args.length; j++) {
+                    final[Utils.Math.to_hex(address)] = args[j];
+                    address++;
+                }
+            }
+
+            if (type === "ascii" || type === "asciiz") {
+                for (var j = 0; j < args.length; j++) {
+                    for (var k = 0; k < args[j].length; k++) {
+                        final[Utils.Math.to_hex(address)] = args[j].charCodeAt(k);
+                        address++;
+                    }
+                }
+            }
+        }
+
+        return final;
     };
 
     var parse = function (raw) {
         var post_validation = verify(raw);
         var post_label = gather_labels(post_validation);
+        // Good place for a debugger! Conversion complete, but hard to interpret, after next step.
+        var final_segment = to_final(post_label.data);
 
-        return post_label.data;
+        return {data: final_segment, labels: post_label.labels};
     };
 
     // Return out the interface
     return {
-        parse: parse
-    }
+        parse: parse,
+        base_address: base_address,
+        max_address: max_address
+    };
 })();
