@@ -8,12 +8,13 @@ var Utils = (function () {
     var regex_binary = /^0(b|B)([01]{1,32}$)/mi;
     var regex_char = /^'.'$/mi;
     var regex_comment = /(#|\/\/)(.*)/im;
-    var regex_offset = /^([0-9A-Za-z_]+)\((\$.{1,4})\)$/im;
+    var regex_offset = /^(.+)\((\$.{1,4})\)$/im;
     var regex_label_dec = /^[a-zA-Z_][a-zA-Z0-9_]*:$/im;
     var regex_label = /^[a-zA-Z_][a-zA-Z0-9_]*$/im;
     var regex_type = /^\.(word|half|byte|ascii|asciiz|float|double|space|align)$/im;
     var regex_string_escape = /\"((\\\"|[^\"])+)\"/gim;
     var regex_string_lexeme = /^\"((\\\"|[^\"])+)\"$/im;
+    var regex_register = /^\$([12]?[0-9]|3[01])$/im;
 
     // get_error: Return a proper error to throw
     var get_error = function (index, args) {
@@ -27,7 +28,9 @@ var Utils = (function () {
         "No arguments were provided to data type $1 on line $2.",
         "Max data segment size exceeded on line $1.",
         "No match for label '$1' on line $2.",
-        "Label '$1' duplicated on line $2."
+        "Label '$1' duplicated on line $2.",
+        "'$1' is not a valid instruction on line $2.",
+        "One or more arguments to instruction '$1' are not valid on line $2."
         ];
 
         var current = error_codes[index];
@@ -297,6 +300,41 @@ var Utils = (function () {
 
             // Return the number
             return elem;
+        },
+
+        reg: function (elem) {
+            // Are we a register between $0 and $31?
+            if (regex_register.test(elem)) {
+                return elem;
+            }
+            return null;
+        },
+
+        imm16s: function (elem) {
+            // Are we a valid signed 16-bit immediate?
+            var result = Type.half(elem);
+
+            // Return the signed value
+            if (result) {
+                return Math.to_signed(result);
+            }
+            return null;
+        },
+
+        imm32s: function (elem) {
+            // Are we a valid signed 32-bit immediate
+            elem = Parser.const_to_val(elem);
+            if (elem === null) {
+                return null;
+            }
+
+            // Are we in range?
+            if (!Math.in_bit_range(elem, 32)) {
+                return null;
+            }
+
+            // Convert to signed and return
+            return Math.to_signed(elem, 32);
         }
     };
 
@@ -343,6 +381,16 @@ var Utils = (function () {
             }
 
             return result;
+        },
+
+        // Returns (unsigned) the top 16 bits of a word
+        top_16: function (input) {
+            return input >>> 16;
+        },
+
+        // Returns (unsigned) the lower 16 bits of a word
+        bottom_16: function (input) {
+            return input & 0x0000FFFF;
         }
     };
 

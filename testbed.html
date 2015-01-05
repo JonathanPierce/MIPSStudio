@@ -84,7 +84,7 @@
             return;
         }
 
-        var output = JSON.stringify(result);
+        var output = result.error ? JSON.stringify(result) : JSON.stringify(result.text); // Show raw instruction parse results for now
         console.log("Parse complete:");
         console.log(result);
 

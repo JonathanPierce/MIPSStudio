@@ -6,12 +6,17 @@ var MIPSParser = (function () {
     var regex_useless = /;|,|\r|\v|\f|(^\s*\n)|^\s+/gim;
     var regex_spaces = /\ \ +|\t+/gmi;
     var regex_comment = /^(#|\/\/)(.*)/im;
+    var regex_multicomment = /\/\*((.|\n)*)\*\//gim;
     var regex_linelabel = /^[a-zA-Z_][a-zA-Z0-9_]*:$/im;
     var regex_constant = /^([a-zA-Z_][a-zA-Z0-9_]*)\ ?=\ ?(.+)/im;
 
     // Cleanup: Removes whitespace and comments, aligns labels.
     // Results in line #/line/comment pairs
     var cleanup = function (input) {
+        // Remove multiline comments /* ... */
+        input = input.replace(regex_multicomment, "");
+
+        // Split stuff up
         var split = input.split("\n");
         var result = [];
 
@@ -144,11 +149,12 @@ var MIPSParser = (function () {
                         offset.offset = constants[offset.offset].toString();
                     }
 
-                    if (Utils.get(regs, offset.reg)) {
-                        offset.reg = regs[offset.reg];
+                    if (Utils.get(regs, offset.reg.toLowerCase())) {
+                        offset.reg = regs[offset.reg.toLowerCase()];
                     }
 
-                    current[j] = offset.offset + "(" + offset.reg + ")";
+                    // Convert the offset into two arguments (by separating with a space)
+                    current[j] = offset.offset + " " + offset.reg;
                 } else {
                     // Handle constants
                     if (Utils.get(constants,prop)) {
@@ -156,8 +162,8 @@ var MIPSParser = (function () {
                     }
 
                     // Handle registers
-                    if (Utils.get(regs,prop)) {
-                        current[j] = regs[prop];
+                    if (Utils.get(regs,prop.toLowerCase())) {
+                        current[j] = regs[prop.toLowerCase()];
                     }
                 }
             }
@@ -234,11 +240,13 @@ var MIPSParser = (function () {
             
             // Parse the data
             var data_result = DataParser.parse(segment_result.data);
+            var text_result = TextParser.parse(segment_result.text, segment_result.labels);
 
             return {
                 error: false,
                 constants: constant_result.constants,
-                data: data_result
+                data: data_result,
+                text: text_result
             };
         } catch (e) {
             // Something went wrong! :(
