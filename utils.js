@@ -310,19 +310,13 @@ var Utils = (function () {
             return null;
         },
 
-        imm16s: function (elem) {
-            // Are we a valid signed 16-bit immediate?
-            var result = Type.half(elem);
-
-            // Return the signed value
-            if (result) {
-                return Math.to_signed(result);
-            }
-            return null;
+        imm16: function (elem) {
+            // Are we a valid 16-bit immediate?
+            return Type.half(elem);
         },
 
-        imm32s: function (elem) {
-            // Are we a valid signed 32-bit immediate
+        imm32: function (elem) {
+            // Are we a valid 32-bit immediate
             elem = Parser.const_to_val(elem);
             if (elem === null) {
                 return null;
@@ -333,8 +327,8 @@ var Utils = (function () {
                 return null;
             }
 
-            // Convert to signed and return
-            return Math.to_signed(elem, 32);
+            // Convert to unsigned and return (interpreter will convert ot signed if necessary at runtime)
+            return Math.to_unsigned(elem, 32);
         }
     };
 
