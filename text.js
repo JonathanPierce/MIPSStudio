@@ -382,6 +382,204 @@ var TextParser = (function () {
 
             // Return final instruction(s)
             return [{ inst: "multu", args: [reg1, reg2] }];
+        },
+
+        "divu": function (args) {
+            // Correct args length?
+            if (args.length !== 2) {
+                return null;
+            }
+
+            // Correct args types?
+            // reg, reg
+            var reg1 = Utils.Type.reg(args[0]);
+            var reg2 = Utils.Type.reg(args[1]);
+            var valid = reg1 && reg2;
+
+            // Fail if necessary
+            if (!valid) {
+                return null;
+            }
+
+            // Return final instruction(s)
+            return [{ inst: "divu", args: [reg1, reg2] }];
+        },
+
+        "mul": function (args) {
+            // Correct args length?
+            if (args.length !== 3) {
+                return null;
+            }
+
+            // Correct args types?
+            // reg, reg, reg
+            // reg, reg, imm16
+            // reg, reg, imm32
+            var valid = false;
+            var reg1 = Utils.Type.reg(args[0]);
+            var reg2 = Utils.Type.reg(args[1]);
+            var reg3 = Utils.Type.reg(args[2]);
+            if (reg1 && reg2 && reg3) {
+                valid = true; // reg reg reg
+            } else {
+                var imm16 = Utils.Type.imm16(args[2]);
+                var imm32 = Utils.Type.imm32(args[2]);
+                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
+                    valid = true;
+                }
+            }
+
+            // Fail if necessary
+            if (!valid) {
+                return null;
+            }
+
+            // Return final instruction(s)
+            if (reg3) {
+                return [
+                    { inst: "mult", args: [reg2, reg3] },
+                    { inst: "mflo", args: [reg1] }
+                ];
+            }
+
+            if (imm16 !== null) {
+                return [
+                    { inst: "addi", args: ["$1", "$0", imm16] },
+                    { inst: "mult", args: [reg2, "$1"] },
+                    { inst: "mflo", args: [reg1] }
+                ];
+            }
+
+            if (imm32 !== null) {
+                return [
+                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
+                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
+                    { inst: "mult", args: [reg2, "$1"] },
+                    { inst: "mflo", args: [reg1] }
+                ];
+            }
+        },
+
+        "div": function (args) {
+            // Correct args length?
+            if (args.length > 3 || args.length < 2) {
+                return null;
+            }
+
+            // Correct args types?
+            // reg, reg
+            // reg, reg, reg
+            // reg, reg, imm16
+            // reg, reg, imm32
+            var valid = false;
+            var reg1 = Utils.Type.reg(args[0]);
+            var reg2 = Utils.Type.reg(args[1]);
+            var reg3 = null;
+            if (args.length === 2) {
+                if (reg1 && reg2) {
+                    valid = true; // reg reg
+                }
+            } else {
+                reg3 = Utils.Type.reg(args[2]);
+                if (reg1 && reg2 && reg3) {
+                    valid = true; // reg reg reg
+                } else {
+                    var imm16 = Utils.Type.imm16(args[2]);
+                    var imm32 = Utils.Type.imm32(args[2]);
+                    if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
+                        valid = true; // reg reg imm
+                    }
+                }
+            }
+
+            // Fail if necessary
+            if (!valid) {
+                return null;
+            }
+
+            // Return final instruction(s)
+            if (args.length === 2) {
+                return [ {inst: "div", args: [reg1, reg2] } ];
+            } else {
+                if (reg3) {
+                    return [
+                        { inst: "div", args: [reg2, reg3] },
+                        { inst: "mflo", args: [reg1] }
+                    ];
+                }
+
+                if (imm16 !== null) {
+                    return [
+                        { inst: "addi", args: ["$1", "$0", imm16] },
+                        { inst: "div", args: [reg2, "$1"] },
+                        { inst: "mflo", args: [reg1] }
+                    ];
+                }
+
+                if (imm32 !== null) {
+                    return [
+                        { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
+                        { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
+                        { inst: "div", args: [reg2, "$1"] },
+                        { inst: "mflo", args: [reg1] }
+                    ];
+                }
+            }
+        },
+
+        "mfhi": function (args) {
+            // Correct args length?
+            if (args.length !== 1) {
+                return null;
+            }
+
+            // Correct args types?
+            // reg
+            var reg1 = Utils.Type.reg(args[0]);
+            if(!reg1) {
+                return null;
+            }
+
+            // Return final instruction(s)
+            return [{inst: "mfhi", args: [reg1] } ];
+        },
+
+        "mflo": function (args) {
+            // Correct args length?
+            if (args.length !== 1) {
+                return null;
+            }
+
+            // Correct args types?
+            // reg
+            var reg1 = Utils.Type.reg(args[0]);
+            if (!reg1) {
+                return null;
+            }
+
+            // Return final instruction(s)
+            return [{ inst: "mflo", args: [reg1] }];
+        },
+
+        "lui": function (args) {
+            // Correct args length?
+            if (args.length !== 2) {
+                return null;
+            }
+
+            // Correct args types?
+            // reg imm16
+            var reg1 = Utils.Type.reg(args[0]);
+            var imm16 = Utils.Type.imm16(args[1]);
+            var valid = reg1 && (imm16 !== null);
+
+            // Fail if necessary
+            if (!valid) {
+                return null;
+            }
+
+            // Return final instruction(s)
+            return [ { inst: "lui", args: [reg1, imm16] } ];
         }
     };
 
