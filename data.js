@@ -274,7 +274,7 @@ var DataParser = (function () {
         // Good place for a debugger! Conversion complete, but hard to interpret, after next step.
         var final_segment = to_final(post_label.data);
 
-        return {data: final_segment, labels: post_label.labels};
+        return {segment: final_segment, labels: post_label.labels};
     };
 
     // Return out the interface
@@ -283,4 +283,9 @@ var DataParser = (function () {
         base_address: base_address,
         max_address: max_address
     };
+})();
+
+// Module for a MIPS stack segment
+var MIPSStack = (function () {
+
 })();

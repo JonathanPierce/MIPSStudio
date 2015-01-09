@@ -103,6 +103,7 @@ var MIPSParser = (function () {
     var subst_constants = function (input, constants) {
         var regs = {
             "$zero": "$0",
+            "$r0": "$0",
             "$at": "$1",
             "$v0": "$2",
             "$v1": "$3",
@@ -245,8 +246,8 @@ var MIPSParser = (function () {
             return {
                 error: false,
                 constants: constant_result.constants,
-                data: data_result.data,
-                text: text_result.text
+                data: data_result,
+                text: text_result
             };
         } catch (e) {
             // Something went wrong! :(

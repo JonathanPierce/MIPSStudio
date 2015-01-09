@@ -1,6 +1,6 @@
-MIPSStudio
+MIPS Studio
 ==========
 
-An interactive MIPS interpreter in HTML5/JavaScript
+An interactive MIPS assembly interpreter in HTML5/JavaScript
 
-Not very complete so far. Some progress has been made on parsing. For now, play with it using testbed.html.
+Not yet complete; however, you can play with the progress so far on testbed.html.

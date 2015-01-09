@@ -1,23 +1,4 @@
 var TextParser = (function () {
-    /*
-
-    - Verify instrucition validity
-    -- Valid instruction type
-    -- Correct number of args for instruction
-    -- Correct types of args for instruction (regisiters in range, immediates in range...)
-    -- Perform pseudoinstruction conversions
-    --- Split pseudos into one or more true instructions
-    --- Assign a base PC address to each raw object
-    - Gather labels
-    -- Make sure labels only declared once, don't conflict with data labels
-    -- Match each text label with a PC address
-    -- Replace all instances of the label in load/store instructions (error if label has no match)
-    - Create PC map
-    -- Links each PC address to a raw object
-    -- All done!
-
-    */
-
     // Acknowledge load
     console.log('TextParser loaded.');
 
@@ -841,7 +822,10 @@ var TextParser = (function () {
             return [{ inst: "slti", args: [reg1, reg2, imm16] }];
         },
 
-        "sll": function (args) {
+        "sll": function (args, final) {
+            // Set final instruction
+            final = final || "sll";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -849,10 +833,12 @@ var TextParser = (function () {
 
             // Correct args types?
             // reg, reg, imm16
+            // reg, reg, reg
             var reg1 = Utils.Type.reg(args[0]);
             var reg2 = Utils.Type.reg(args[1]);
+            var reg3 = Utils.Type.reg(args[2]);
             var imm16 = Utils.Type.imm16(args[2]);
-            var valid = reg1 && reg2 && (imm16 !== null);
+            var valid = reg1 && reg2 && (imm16 !== null || reg3);
 
             // Fail if necessary
             if (!valid) {
@@ -860,29 +846,16 @@ var TextParser = (function () {
             }
 
             // Return final instruction(s)
-            return [{ inst: "sll", args: [reg1, reg2, imm16] }];
+            if (imm16 !== null) {
+                return [{ inst: final, args: [reg1, reg2, imm16] }];
+            } else {
+                return [{ inst: final + "v", args: [reg1, reg2, reg3] }];
+            }
+            
         },
 
         "srl": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, imm16
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16(args[2]);
-            var valid = reg1 && reg2 && (imm16 !== null);
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "srl", args: [reg1, reg2, imm16] }];
+            return Insts.sll(args, "srl");
         },
 
         "sllv": function (args) {
@@ -1536,6 +1509,12 @@ var TextParser = (function () {
             raw[i].instructions = subst_label(raw[i], text_labels, data_labels);
         }
 
+        // Require a 'main' label
+        if (!text_labels["main"]) {
+            // FAIL
+            throw Utils.get_error(12,[]);
+        }
+
         // Return the updated data segment and labels
         return { text: raw, text_labels: text_labels };
     };
@@ -1620,7 +1599,7 @@ var TextParser = (function () {
                 }
 
                 // Substitute if matched
-                current[i].args[2] = Math.floor(((val_or_null - (line.base + (current.length - 1))) - 4) / 4);
+                current[i].args[2] = Math.floor(((val_or_null - (line.base + i)) - 4) / 4);
             }
         }
 
@@ -1630,6 +1609,8 @@ var TextParser = (function () {
     // Create the final PC map
     var finalize = function (raw) {
         var result = {};
+
+        var biggest = 0;
 
         for (var i = 0; i < raw.length; i++) {
             var addr = raw[i].base;
@@ -1641,10 +1622,12 @@ var TextParser = (function () {
                     args: raw[i].instructions[j].args,
                     raw: raw[i]
                 };
+
+                biggest = addr + (j * 4);
             }
         }
 
-        return result;
+        return { segment: result, end_addr: biggest };
     };
 
     var parse = function (raw_insts, data_labels) {
@@ -1652,7 +1635,12 @@ var TextParser = (function () {
         var validated = validate(raw_insts);
         var labeled = gather_labels(validated, data_labels);
         var finalized = finalize(labeled.text);
-        return {text: finalized, labels: labeled.text_labels};
+        return {
+            segment: finalized.segment,
+            labels: labeled.text_labels,
+            raw: labeled.text,
+            end_addr: finalized.end_addr
+        };
     };
 
     // Return out the interface

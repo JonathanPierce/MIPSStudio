@@ -30,7 +30,8 @@ var Utils = (function () {
         "No match for label '$1' on line $2.",
         "Label '$1' duplicated on line $2.",
         "'$1' is not a valid instruction on line $2.",
-        "One or more arguments to instruction '$1' are not valid on line $2."
+        "One or more arguments to instruction '$1' are not valid on line $2.",
+        "Your must have a label in your text segment called 'main'."
         ];
 
         var current = error_codes[index];
@@ -96,6 +97,9 @@ var Utils = (function () {
                 // Special characters like \n
                 if (unescaped === "'\\n'") {
                     return "\n".charCodeAt(0)
+                }
+                if (unescaped === "'\\t'") {
+                    return "\t".charCodeAt(0)
                 }
 
                 // No match? FAIL.
