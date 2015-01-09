@@ -141,7 +141,7 @@ var DataParser = (function () {
             // Are we too big?
             if (current_address > max_address) {
                 // FAIL
-                throw Utils.get_error(7, [raw[i].line]);
+                throw Utils.get_error(7, ["data",raw[i].line]);
             }
         }
 

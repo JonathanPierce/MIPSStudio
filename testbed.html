@@ -11,85 +11,50 @@
 </head>
 <body>
 
-<h4>Input Assembly</h4>
-<textarea id="input" rows="12" cols="100"></textarea>
-<h4>Processed Assembly</h4>
-<textarea id="output" rows="12" cols="100" readonly="readonly"></textarea>
-<h4>Output Information</h4>
-<textarea id="info" rows="8" cols="100" readonly="readonly"></textarea><br /><br />
-<button id="cleanup">cleanup</button> <button id="constants">constants</button> <button id="segment">segment</button> <button id="parse">PARSE</button>
+<h2>MIPS Studio <button id="parse">PARSE</button></h2>
+<textarea id="input" rows="12" cols="100" placeholder="MIPS goes here..."></textarea><br/><hr/>
+<div id="results">Enter some MIPS assembly in the box above, then hit 'PARSE'.</div>
+
 
 <script type="text/javascript">
-    document.getElementById('cleanup').addEventListener('click', function () {
+    document.getElementById('parse').addEventListener('click', function () {
         var input = document.getElementById('input').value;
+        var div = document.getElementById('results');
+        div.innerHTML = "";
+        var result = MIPSParser.parse(input);
 
-        var result = Utils.join_by_prop(MIPSParser.cleanup(input), "text", "\n");
-
-        document.getElementById('output').value = result;
-        document.getElementById('info').value = "";
-    });
-
-    document.getElementById('constants').addEventListener('click', function () {
-        var input = document.getElementById('input').value;
-
-        try {
-            var result = MIPSParser.cleanup(input);
-            result = MIPSParser.parse_constants(result);
-        } catch (e) {
-            document.getElementById('info').value = "ERROR\nCode: " + ((e.code || e.code === 0) ? e.code : "None") + "\nMessage: " + e.message;
+        // Did we error?
+        if(result.error) {
+            div.innerHTML = "<h1 style='color: red'>ERROR!</h1><b>Code:</b> " + ((result.code || result.code === 0) ? result.code : "None") + "<br/><b>Message: </b>" + result.message;
             return;
         }
-        
 
+        // Draw the results
         var output = "";
-        var constants = result.constants;
-        for (member in constants) {
-            if (constants.hasOwnProperty(member)) {
-                output += member + " = " + constants[member] + "\n";
+        output += "<h1 style='color: green'>Success!</h1>";
+        output += "<h3>Constants:</h3>";
+
+        // Draw the constants
+        for (member in result.constants) {
+            if (result.constants.hasOwnProperty(member)) {
+                output += member + ": " + result.constants[member] + "<br/>";
             }
         }
 
-        document.getElementById('info').value = output;
-        document.getElementById('output').value = Utils.join_by_prop(result.text, "text", "\n");
-    });
-
-    document.getElementById('segment').addEventListener('click', function () {
-        var input = document.getElementById('input').value;
-
-        try {
-            var result = MIPSParser.cleanup(input);
-            result1 = MIPSParser.parse_constants(result);
-            result2 = MIPSParser.segment(result1.text);
-        } catch (e) {
-            document.getElementById('info').value = "ERROR\nCode: " + ((e.code || e.code === 0) ? e.code : "None") + "\nMessage: " + e.message;
-            return;
+        // Draw the instrucitons
+        output += "<h3>Instructions</h3>";
+        for (member in result.text) {
+            if (result.text.hasOwnProperty(member)) {
+                output += member + ": " + result.text[member].inst + " " + result.text[member].args.join(" ") + "<br/>";
+            }
         }
 
-        var output = "DATA:\n\n";
-        output += Utils.join_by_prop(result2.data, "text","\n");
-        output += "\n\nTEXT:\n\n";
-        output += Utils.join_by_prop(result2.text, "text", "\n");;
+        // Draw the data segment
+        output += "<h3>Data:</h3>";
+        output += JSON.stringify(result.data).replace(/[\{\}"]/g, "").split(",").join("\n");
 
-        document.getElementById('info').value = output;
-        document.getElementById('output').value = Utils.join_by_prop(result1.text, "text", "\n");
-    });
-
-    document.getElementById('parse').addEventListener('click', function () {
-        var input = document.getElementById('input').value;
-
-        try {
-            var result = MIPSParser.parse(input);
-        } catch (e) {
-            document.getElementById('info').value = "ERROR\nCode: " + ((e.code || e.code === 0) ? e.code : "None") + "\nMessage: " + e.message;
-            return;
-        }
-
-        var output = result.error ? JSON.stringify(result) : JSON.stringify(result.text); // Show raw instruction parse results for now
-        console.log("Parse complete:");
-        console.log(result);
-
-        document.getElementById('info').value = "Parse complete! Check your web console!";
-        document.getElementById('output').value = output;
+        // Show the result
+        div.innerHTML = output;
     });
 </script>
 

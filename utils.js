@@ -6,14 +6,14 @@ var Utils = (function () {
     var regex_hex = /^0x[0-9a-fA-F]{1,8}$/mi;
     var regex_integer = /^-?[0-9]+$/mi;
     var regex_binary = /^0(b|B)([01]{1,32}$)/mi;
-    var regex_char = /^'.'$/mi;
+    var regex_char = /^'\\?.'$/mi;
     var regex_comment = /(#|\/\/)(.*)/im;
     var regex_offset = /^(.+)\((\$.{1,4})\)$/im;
     var regex_label_dec = /^[a-zA-Z_][a-zA-Z0-9_]*:$/im;
     var regex_label = /^[a-zA-Z_][a-zA-Z0-9_]*$/im;
     var regex_type = /^\.(word|half|byte|ascii|asciiz|float|double|space|align)$/im;
     var regex_string_escape = /\"((\\\"|[^\"])+)\"/gim;
-    var regex_string_lexeme = /^\"((\\\"|[^\"])+)\"$/im;
+    var regex_string_lexeme = /^\"((\\\"|[^\"])*)\"$/im;
     var regex_register = /^\$([12]?[0-9]|3[01])$/im;
 
     // get_error: Return a proper error to throw
@@ -26,7 +26,7 @@ var Utils = (function () {
         "Data segment line $1 must have a valid type.",
         "Argument '$1' is not compatible with type $2 on line $3.",
         "No arguments were provided to data type $1 on line $2.",
-        "Max data segment size exceeded on line $1.",
+        "Max $1 segment size exceeded on line $2.",
         "No match for label '$1' on line $2.",
         "Label '$1' duplicated on line $2.",
         "'$1' is not a valid instruction on line $2.",
@@ -48,7 +48,7 @@ var Utils = (function () {
     // Returns the match in a hash table or null
     var get = function (table, value) {
         var match = table[value];
-        if (match && table.hasOwnProperty(value)) {
+        if (typeof match !== "undefined" && table.hasOwnProperty(value)) {
             return match;
         }
         return null;
@@ -68,7 +68,7 @@ var Utils = (function () {
     var const_to_val = function (input, line) {
         // Is this hex or a plain integer?
         if (regex_hex.test(input) || regex_integer.test(input)) {
-            return Number(input);
+            return new Number(input);
         }
 
         // Is this binary?
@@ -88,8 +88,19 @@ var Utils = (function () {
         }
 
         // Is this a charaster?
-        if (regex_char.test(input)) {
-            return input.charCodeAt(1);
+        var unescaped = Parser.unescape_string(input);
+        if (regex_char.test(unescaped)) {
+            if (unescaped.length === 3) {
+                return unescaped.charCodeAt(1);
+            } else {
+                // Special characters like \n
+                if (unescaped === "'\\n'") {
+                    return "\n".charCodeAt(0)
+                }
+
+                // No match? FAIL.
+                throw get_error(0, [input, line]);
+            }
         }
 
         // If we made it here, throw an error
@@ -111,7 +122,7 @@ var Utils = (function () {
         return result;
     };
 
-    // PARSER: Various parser hlper functions
+    // PARSER: Various parser helper functions
     var Parser = {
         // Returns a pair of the line without the comment and the comment
         extract_comment: function (input) {
@@ -125,6 +136,7 @@ var Utils = (function () {
         },
 
         // Escapes spaces in string literals with '~@&'
+        // Also handles the ' ' character
         escape_strings: function(input) {
             var matches = apply_regex(regex_string_escape, input);
             var temp = input.replace(regex_string_escape, "#");
@@ -137,6 +149,8 @@ var Utils = (function () {
                 temp = temp.replace("#", matches[0]);
                 matches = matches.slice(1);
             }
+
+            temp = temp.replace(new RegExp("' '", "g"), "'~@&'");
 
             return temp;
         },
@@ -329,6 +343,22 @@ var Utils = (function () {
 
             // Convert to unsigned and return (interpreter will convert ot signed if necessary at runtime)
             return Math.to_unsigned(elem, 32);
+        },
+
+        imm26: function (elem) {
+            // Are we a valid 26-bit immediate
+            elem = Parser.const_to_val(elem);
+            if (elem === null) {
+                return null;
+            }
+
+            // Are we in range?
+            if (!Math.in_bit_range(elem, 26)) {
+                return null;
+            }
+
+            // Convert to unsigned and return (interpreter will convert ot signed if necessary at runtime)
+            return Math.to_unsigned(elem, 26);
         }
     };
 

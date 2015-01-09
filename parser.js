@@ -145,11 +145,11 @@ var MIPSParser = (function () {
                 // Is this an offset?
                 var offset = Utils.Parser.parse_offset(prop);
                 if (offset) {
-                    if (Utils.get(constants, offset.offset)) {
+                    if (Utils.get(constants, offset.offset) !== null) {
                         offset.offset = constants[offset.offset].toString();
                     }
 
-                    if (Utils.get(regs, offset.reg.toLowerCase())) {
+                    if (Utils.get(regs, offset.reg.toLowerCase()) !== null) {
                         offset.reg = regs[offset.reg.toLowerCase()];
                     }
 
@@ -157,12 +157,12 @@ var MIPSParser = (function () {
                     current[j] = offset.offset + " " + offset.reg;
                 } else {
                     // Handle constants
-                    if (Utils.get(constants,prop)) {
+                    if (Utils.get(constants,prop) !== null) {
                         current[j] = constants[prop].toString();
                     }
 
                     // Handle registers
-                    if (Utils.get(regs,prop.toLowerCase())) {
+                    if (Utils.get(regs,prop.toLowerCase()) !== null) {
                         current[j] = regs[prop.toLowerCase()];
                     }
                 }
@@ -240,13 +240,13 @@ var MIPSParser = (function () {
             
             // Parse the data
             var data_result = DataParser.parse(segment_result.data);
-            var text_result = TextParser.parse(segment_result.text, segment_result.labels);
+            var text_result = TextParser.parse(segment_result.text, data_result.labels);
 
             return {
                 error: false,
                 constants: constant_result.constants,
-                data: data_result,
-                text: text_result
+                data: data_result.data,
+                text: text_result.text
             };
         } catch (e) {
             // Something went wrong! :(
