@@ -6,6 +6,8 @@ var DataParser = (function () {
     // Constants
     var base_address = Utils.const_to_val("0x10000000");
     var max_address = Utils.const_to_val("0x10100000");
+    var base_stack = Utils.Parser.const_to_val("0x7fff0000");
+    var max_stack = Utils.Parser.const_to_val("0x80000000");
 
     // Each line must have a label (optional), type, and 1 or more arguments of that type/labels
     // This function will extract the label, type, and args
@@ -277,15 +279,27 @@ var DataParser = (function () {
         return {segment: final_segment, labels: post_label.labels};
     };
 
+    // Creates a word-addressed stack segment, initalized ot zero.
+    var create_stack = function () {
+        var stack = {};
+
+        var current = base_stack;
+
+        while (current <= max_stack) {
+            stack[Utils.Math.to_hex(current)] = 0;
+            current += 4;
+        }
+
+        return stack;
+    };
+
     // Return out the interface
     return {
         parse: parse,
         base_address: base_address,
-        max_address: max_address
+        max_address: max_address,
+        base_stack: base_stack,
+        max_stack: max_stack,
+        create_stack: create_stack
     };
-})();
-
-// Module for a MIPS stack segment
-var MIPSStack = (function () {
-
 })();

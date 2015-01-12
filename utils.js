@@ -31,7 +31,11 @@ var Utils = (function () {
         "Label '$1' duplicated on line $2.",
         "'$1' is not a valid instruction on line $2.",
         "One or more arguments to instruction '$1' are not valid on line $2.",
-        "Your must have a label in your text segment called 'main'."
+        "Your must have a label in your text segment called 'main'.",
+        "Maximum cycle count exceeded.",
+        "No instruction at address $1.",
+        "An error occurred when performing instruction '$1' on line $2.",
+        "Instruction '$1' made an llegal attempt to write to register zero on line $2."
         ];
 
         var current = error_codes[index];
@@ -69,7 +73,7 @@ var Utils = (function () {
     var const_to_val = function (input, line) {
         // Is this hex or a plain integer?
         if (regex_hex.test(input) || regex_integer.test(input)) {
-            return new Number(input);
+            return Number(input);
         }
 
         // Is this binary?

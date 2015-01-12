@@ -27,8 +27,9 @@
 </head>
 <body>
 
-<h2>MIPS Studio <button id="parse">PARSE</button></h2>
-<textarea id="input" rows="12" cols="100" placeholder="MIPS goes here..."></textarea><br/><hr/>
+<h1>MIPS Studio</h1>
+<textarea id="input" rows="12" cols="100" placeholder="MIPS goes here..."></textarea><br/><br/>
+<button id="parse">PARSE</button> <button id="run">RUN</button><hr/>
 <div id="results">Enter some MIPS assembly in the box above, then hit 'PARSE'.</div>
 
 
@@ -45,13 +46,13 @@
 
         // Did we error?
         if(result.error) {
-            div.innerHTML = "<h1 style='color: red'>ERROR!</h1><b>Code:</b> " + ((result.code || result.code === 0) ? result.code : "None") + "<br/><b>Message: </b>" + result.message;
+            div.innerHTML = "<h2 style='color: red'>ERROR!</h2><b>Code:</b> " + ((result.code || result.code === 0) ? result.code : "None") + "<br/><b>Message: </b>" + result.message;
             return;
         }
 
         // Draw the results
         var output = "";
-        output += "<h1 style='color: green'>Success!</h1>";
+        output += "<h2 style='color: green'>Success!</h2>";
         output += "<h3>Constants:</h3>";
 
         // Draw the constants
@@ -88,6 +89,45 @@
         output += JSON.stringify(result.data.segment).replace(/[\{\}"]/g, "").split(",").join("\n");
 
         // Show the result
+        div.innerHTML = output;
+    });
+
+    document.getElementById("run").addEventListener("click", function () {
+        var input = document.getElementById('input').value;
+        var div = document.getElementById('results');
+        div.innerHTML = "";
+        var parse = MIPSParser.parse(input);
+
+        // Did the parse error?
+        if (parse.error) {
+            div.innerHTML = "<h2 style='color: red'>ERROR!</h2><b>Code:</b> " + ((parse.code || parse.code === 0) ? parse.code : "None") + "<br/><b>Message: </b>" + parse.message;
+            return;
+        }
+
+        var runtime = MIPSRuntime.create(parse.data, parse.text);
+
+        console.log("Runtime created...");
+        console.log(runtime);
+        window.test_runtime = runtime;
+
+        var result = runtime.run_to_end();
+
+        var output = "";
+        output += "<b>Cycles:</b> " + result.cycles + "<br/><br/>";
+        output += "<b>Exited:</b> " + result.has_exited + "<br/><br/>";
+        output += "<b>Error:</b> " + JSON.stringify(result.error) + "<br/><br/>";
+        output += "<b>Registers (unsigned | signed | hex):</b><br/><br/>";
+        output += "PC: " + result.registers["PC"];
+        output += "<br/>HI: " + result.registers["HI"];
+        output += "<br/>LO: " + result.registers["LO"];
+        for (var i = 0; i < 32; i++) {
+            var val = result.registers["$" + i];
+            var unsigned = Utils.Math.to_unsigned(val, 32);
+            var signed = Utils.Math.to_signed(val, 32);
+            var hex = Utils.Math.to_hex(unsigned);
+            output += "<br/>$" + i + ": " + unsigned + " | " + signed + " | " + hex;
+        }
+
         div.innerHTML = output;
     });
 </script>

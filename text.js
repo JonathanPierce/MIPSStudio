@@ -1070,7 +1070,7 @@ var TextParser = (function () {
 
             // Return final instruction(s)
             if (imm16 !== null) {
-                return [ { inst: "addi", args: [reg1, "$0", imm16] } ];
+                return [ { inst: "ori", args: [reg1, "$0", imm16] } ];
             } else {
                 return [
                     { inst: "lui", args: [reg1, Utils.Math.top_16(imm32)] },
@@ -1627,7 +1627,10 @@ var TextParser = (function () {
             }
         }
 
-        return { segment: result, end_addr: biggest };
+        return {
+            segment: result,
+            end_addr: biggest + 4
+        };
     };
 
     var parse = function (raw_insts, data_labels) {
