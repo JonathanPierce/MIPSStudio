@@ -35,7 +35,12 @@ var Utils = (function () {
         "Maximum cycle count exceeded.",
         "No instruction at address $1.",
         "An error occurred when performing instruction '$1' on line $2.",
-        "Instruction '$1' made an llegal attempt to write to register zero on line $2."
+        "Instruction '$1' made an illegal attempt to write to register zero on line $2.",
+        "Integer overflow occured with instruction '$1' on line $2.",
+        "Illegal attempt to divide by zero on line $1.",
+        "Segmentation Fault on line $1. :(",
+        "Likely Stack Overflow on line $1. :(",
+        "Unaligned load or store on line $1."
         ];
 
         var current = error_codes[index];
@@ -333,7 +338,17 @@ var Utils = (function () {
         },
 
         imm16: function (elem) {
-            // Are we a valid 16-bit immediate?
+            // Are we a valid SIGNED 16-bit immediate?
+            // Most instructions will see an out of range 16-bit value as a valid 32-bit one.
+            var result = Type.half(elem);
+            if (result !== null && Math.in_signed_range(result, 16)) {
+                return Math.to_signed(result, 16);
+            }
+            return null;
+        },
+
+        imm16u: function (elem) {
+            // Are we a valid *UN*SIGNED 16-bit immediate?
             return Type.half(elem);
         },
 
@@ -349,7 +364,7 @@ var Utils = (function () {
                 return null;
             }
 
-            // Convert to unsigned and return (interpreter will convert ot signed if necessary at runtime)
+            // Convert to unsigned and return (interpreter will convert to signed if necessary at runtime)
             return Math.to_unsigned(elem, 32);
         },
 
@@ -394,6 +409,14 @@ var Utils = (function () {
             var max_unsigned = window.Math.pow(2, bits) - 1;
 
             return num >= min_signed && num <= max_unsigned;
+        },
+
+        // Is this number (signed!!!) in the range of something in this bit level?
+        in_signed_range: function (num, bits) {
+            var min_signed = -1 * window.Math.pow(2, bits - 1);
+            var max_signed = (min_signed * -1) - 1;
+
+            return num >= min_signed && num <= max_signed;
         },
 
         // Converts a number to a hexadecimal string

@@ -203,6 +203,12 @@ var TextParser = (function () {
                 valid = true; // reg reg reg
             } else {
                 var imm16 = Utils.Type.imm16(args[2]);
+                if (imm16 !== null) {
+                    imm16 = imm16 * -1;
+                    if (!Utils.Math.in_signed_range(imm16, 16)) {
+                        imm16 = null;
+                    }
+                }
                 var imm32 = Utils.Type.imm32(args[2]);
                 if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
                     valid = true;
@@ -220,7 +226,7 @@ var TextParser = (function () {
             }
 
             if (imm16 !== null) {
-                return [{ inst: "subi", args: [reg1, reg2, imm16] }];
+                return [{ inst: "addi", args: [reg1, reg2, imm16] }];
             }
 
             if (imm32 !== null) {
@@ -250,6 +256,12 @@ var TextParser = (function () {
                 valid = true; // reg reg reg
             } else {
                 var imm16 = Utils.Type.imm16(args[2]);
+                if (imm16 !== null) {
+                    imm16 = imm16 * -1;
+                    if (!Utils.Math.in_signed_range(imm16, 16)) {
+                        imm16 = null;
+                    }
+                }
                 var imm32 = Utils.Type.imm32(args[2]);
                 if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
                     valid = true;
@@ -267,7 +279,7 @@ var TextParser = (function () {
             }
 
             if (imm16 !== null) {
-                return [{ inst: "subiu", args: [reg1, reg2, imm16] }];
+                return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
             }
 
             if (imm32 !== null) {
@@ -277,50 +289,6 @@ var TextParser = (function () {
                     { inst: "subu", args: [reg1, reg2, "$1"] }
                 ];
             }
-        },
-
-        "subi": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, imm16
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16(args[2]);
-            var valid = reg1 && reg2 && (imm16 !== null);
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "subi", args: [reg1, reg2, imm16] }];
-        },
-
-        "addiu": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, imm16
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16(args[2]);
-            var valid = reg1 && reg2 && (imm16 !== null);
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "subiu", args: [reg1, reg2, imm16] }];
         },
 
         "mult": function (args) {
@@ -345,45 +313,13 @@ var TextParser = (function () {
         },
 
         "multu": function (args) {
-            // Correct args length?
-            if (args.length !== 2) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var valid = reg1 && reg2;
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "multu", args: [reg1, reg2] }];
+            // Don't diffrentiate from mult for now
+            return Insts.mult(args);
         },
 
         "divu": function (args) {
-            // Correct args length?
-            if (args.length !== 2) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var valid = reg1 && reg2;
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "divu", args: [reg1, reg2] }];
+            // Don't diffrentiate from div for now
+            return Insts.div(args);
         },
 
         "mul": function (args) {
@@ -551,7 +487,7 @@ var TextParser = (function () {
             // Correct args types?
             // reg imm16
             var reg1 = Utils.Type.reg(args[0]);
-            var imm16 = Utils.Type.imm16(args[1]);
+            var imm16 = Utils.Type.imm16u(args[1]);
             var valid = reg1 && (imm16 !== null);
 
             // Fail if necessary
@@ -580,7 +516,7 @@ var TextParser = (function () {
             if (reg1 && reg2 && reg3) {
                 valid = true; // reg reg reg
             } else {
-                var imm16 = Utils.Type.imm16(args[2]);
+                var imm16 = Utils.Type.imm16u(args[2]);
                 var imm32 = Utils.Type.imm32(args[2]);
                 if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
                     valid = true;
@@ -620,7 +556,7 @@ var TextParser = (function () {
             // reg, reg, imm16
             var reg1 = Utils.Type.reg(args[0]);
             var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16(args[2]);
+            var imm16 = Utils.Type.imm16u(args[2]);
             var valid = reg1 && reg2 && (imm16 !== null);
 
             // Fail if necessary
@@ -649,7 +585,7 @@ var TextParser = (function () {
             if (reg1 && reg2 && reg3) {
                 valid = true; // reg reg reg
             } else {
-                var imm16 = Utils.Type.imm16(args[2]);
+                var imm16 = Utils.Type.imm16u(args[2]);
                 var imm32 = Utils.Type.imm32(args[2]);
                 if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
                     valid = true;
@@ -689,7 +625,7 @@ var TextParser = (function () {
             // reg, reg, imm16
             var reg1 = Utils.Type.reg(args[0]);
             var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16(args[2]);
+            var imm16 = Utils.Type.imm16u(args[2]);
             var valid = reg1 && reg2 && (imm16 !== null);
 
             // Fail if necessary
@@ -1069,7 +1005,7 @@ var TextParser = (function () {
             }
 
             // Return final instruction(s)
-            if (imm16 !== null) {
+            if (imm16 !== null && Number(args[1]) >= 0) {
                 return [ { inst: "ori", args: [reg1, "$0", imm16] } ];
             } else {
                 return [
@@ -1338,8 +1274,7 @@ var TextParser = (function () {
             var imm16 = Utils.Type.imm16(args[1]);
             imm16 = (imm16 === null) ? null : imm16 + 1; // +1 is IMPORTANT
             var label = Utils.Parser.is_label(args[2]);
-            // imm16 = 0xFFFF will fail at this point
-            var valid = reg1 && (reg2 || (imm16 !== null && Utils.Math.in_bit_range(imm16, 16))) && label;
+            var valid = reg1 && (reg2 || (imm16 !== null && Utils.Math.in_signed_range(imm16, 16))) && label;
 
             // Fail if necessary
             if (!valid) {
@@ -1445,8 +1380,7 @@ var TextParser = (function () {
             var imm16 = Utils.Type.imm16(args[1]);
             imm16 = (imm16 === null) ? null : imm16 + 1; // +1 is IMPORTANT
             var label = Utils.Parser.is_label(args[2]);
-            // imm16 = 0xFFFF will fail at this point
-            var valid = reg1 && (reg2 || (imm16 !== null && Utils.Math.in_bit_range(imm16, 16))) && label;
+            var valid = reg1 && (reg2 || (imm16 !== null && Utils.Math.in_signed_range(imm16, 16))) && label;
 
             // Fail if necessary
             if (!valid) {

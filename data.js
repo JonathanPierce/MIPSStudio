@@ -279,7 +279,7 @@ var DataParser = (function () {
         return {segment: final_segment, labels: post_label.labels};
     };
 
-    // Creates a word-addressed stack segment, initalized ot zero.
+    // Creates a byte-addressed stack segment, initalized ot zero.
     var create_stack = function () {
         var stack = {};
 
@@ -287,7 +287,7 @@ var DataParser = (function () {
 
         while (current <= max_stack) {
             stack[Utils.Math.to_hex(current)] = 0;
-            current += 4;
+            current += 1;
         }
 
         return stack;

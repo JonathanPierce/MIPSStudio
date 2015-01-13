@@ -106,11 +106,11 @@
 
         var runtime = MIPSRuntime.create(parse.data, parse.text);
 
-        console.log("Runtime created...");
-        console.log(runtime);
         window.test_runtime = runtime;
 
         var result = runtime.run_to_end();
+        console.log("Run complete...");
+        console.log(result);
 
         var output = "";
         output += "<b>Cycles:</b> " + result.cycles + "<br/><br/>";
