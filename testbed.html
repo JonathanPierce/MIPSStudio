@@ -128,6 +128,9 @@
             output += "<br/>$" + i + ": " + unsigned + " | " + signed + " | " + hex;
         }
 
+        output += "<br/><br/><b>Output:</b><br/><br/>";
+        output += result.output.replace(/\n/g, "<br/>");
+
         div.innerHTML = output;
     });
 </script>

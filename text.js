@@ -3,8 +3,8 @@ var TextParser = (function () {
     console.log('TextParser loaded.');
 
     // Constants
-    var base_address = Utils.const_to_val("0x00400000");
-    var max_address = Utils.const_to_val("0x00500000");
+    var base_address = Utils.Parser.const_to_val("0x00400000");
+    var max_address = Utils.Parser.const_to_val("0x00500000");
 
     // Validate all instructions
     var validate = function (raw) {

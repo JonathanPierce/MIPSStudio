@@ -4,8 +4,8 @@ var DataParser = (function () {
     console.log('DataParser loaded.');
 
     // Constants
-    var base_address = Utils.const_to_val("0x10000000");
-    var max_address = Utils.const_to_val("0x10100000");
+    var base_address = Utils.Parser.const_to_val("0x10000000");
+    var max_address = Utils.Parser.const_to_val("0x10100000");
     var base_stack = Utils.Parser.const_to_val("0x7fff0000");
     var max_stack = Utils.Parser.const_to_val("0x80000000");
 

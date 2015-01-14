@@ -78,7 +78,11 @@ var MIPSParser = (function () {
         for (var i = 0; i < input.length; i++) {
             if (regex_constant.test(input[i].text)) {
                 var name = input[i].text.replace(regex_constant, "$1");
-                var value = Utils.const_to_val(input[i].text.replace(regex_constant, "$2"), input[i].line);
+                var value = Utils.Parser.const_to_val(input[i].text.replace(regex_constant, "$2"));
+                if (value === null) {
+                    // FAIL
+                    throw get_error(0, [input[i].text, input[i].line]);
+                }
                 constants[name] = value;
                 input[i].text = "";
             }
@@ -182,20 +186,20 @@ var MIPSParser = (function () {
         var regexp_data = /^\.data$/gim;
         var regexp_text = /^\.text$/gim;
 
-        var joined = Utils.join_by_prop(input, "text", "\n");
+        var joined = Utils.Parser.join_by_prop(input, "text", "\n");
 
         // Verify <= 1 data segments.
-        if (Utils.apply_regex(regexp_data, joined).length > 0) {
+        if (Utils.Parser.apply_regex(regexp_data, joined).length > 0) {
             hasData = true;
 
-            if (Utils.apply_regex(regexp_data, joined).length > 1) {
+            if (Utils.Parser.apply_regex(regexp_data, joined).length > 1) {
                 // FAIL
                 throw Utils.get_error(1);
             }
         }
 
         // Verify exactly 1 text segment
-        if (Utils.apply_regex(regexp_text, joined).length !== 1) {
+        if (Utils.Parser.apply_regex(regexp_text, joined).length !== 1) {
             // FAIL
             throw Utils.get_error(2);
         }

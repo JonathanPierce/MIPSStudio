@@ -33,6 +33,9 @@ var MIPSRuntime = (function () {
         // Do we have an error?
         var error = null;
 
+        // Output for syscalls
+        var output = "";
+
         // The registers
         var registers = {
             "PC": 0,
@@ -502,6 +505,50 @@ var MIPSRuntime = (function () {
                     } else {
                         return { set_PC: false };
                     }
+                },
+
+                "syscall": function (args) {
+                    var v0 = registers['$2'];
+
+                    if (v0 === 1) {
+                        // Print int from $a0
+                        var int = Utils.Math.to_signed(registers["$4"], 32);
+                        output += int.toString();
+                    }
+
+                    if (v0 === 4) {
+                        // Print string at address $a0
+                        var addr = Utils.Math.to_unsigned(registers["$4"], 32);
+
+                        var tries = 0;
+                        while (tries < 1000) {
+                            var byte = Memory.read(addr, 1, inst.raw);
+                            var char = String.fromCharCode(byte);
+                            if (char === "\0") {
+                                break;
+                            }
+
+                            output += char;
+
+                            addr += 1;
+                            tries += 1;
+                        }
+                    }
+
+                    if (v0 === 10) {
+                        // exit
+                        has_exited = true;
+                    }
+
+                    if (v0 === 11) {
+                        // Print a character from $a0's low byte
+                        var byte = Utils.Math.to_unsigned(registers["$4"], 32) & 0x000000FF;
+                        var char = String.fromCharCode(byte);
+
+                        output += char;
+                    }
+
+                    return { set_PC: false };
                 }
             }
 
@@ -595,7 +642,7 @@ var MIPSRuntime = (function () {
                 }
 
                 // Have we likely stack overflowed?
-                if (addr < DataParser.max_stack + 40) {
+                if (addr > DataParser.base_stack - 40) {
                     // FAIL
                     throw Utils.get_error(20, [raw.line]);
                 }
@@ -702,6 +749,9 @@ var MIPSRuntime = (function () {
             // Reset the error
             error = null;
 
+            // Reset the output
+            output = "";
+
             // Match PC to the main label
             registers["PC"] = text.labels["main"];
 
@@ -729,7 +779,8 @@ var MIPSRuntime = (function () {
                 data: data,
                 text: text,
                 stack: stack,
-                error: error
+                error: error,
+                output: output
             }
         };
 

@@ -64,77 +64,6 @@ var Utils = (function () {
         return null;
     }
 
-    // Wrapper for String.match that handles the case of no matches with an empty array instead of null
-    var apply_regex = function (regex, input) {
-        var result = input.match(regex);
-
-        return result ? result : [];
-    };
-
-    // const_to_val: Converts a string to an integer value
-    // NOTE: Does not check bounds or enforce signed/unsigned.
-    // NOTE: This function is designed for assembly constants ('speed = 10')
-    // NOTE: Throws an exception upon failure. Use Parser.const_to_val to avoid.
-    var const_to_val = function (input, line) {
-        // Is this hex or a plain integer?
-        if (regex_hex.test(input) || regex_integer.test(input)) {
-            return Number(input);
-        }
-
-        // Is this binary?
-        if (regex_binary.test(input)) {
-            var result = 0;
-            var multiplier = 1;
-            var bits = input.replace(regex_binary, "$2");
-
-            for (var i = bits.length - 1; i >= 0; i--) {
-                if (bits[i] == '1') {
-                    result += multiplier;
-                }
-                multiplier *= 2;
-            }
-
-            return result;
-        }
-
-        // Is this a charaster?
-        var unescaped = Parser.unescape_string(input);
-        if (regex_char.test(unescaped)) {
-            if (unescaped.length === 3) {
-                return unescaped.charCodeAt(1);
-            } else {
-                // Special characters like \n
-                if (unescaped === "'\\n'") {
-                    return "\n".charCodeAt(0)
-                }
-                if (unescaped === "'\\t'") {
-                    return "\t".charCodeAt(0)
-                }
-
-                // No match? FAIL.
-                throw get_error(0, [input, line]);
-            }
-        }
-
-        // If we made it here, throw an error
-        throw get_error(0, [input, line]);
-    };
-
-    // Joins an array by the propery of one of its objects
-    var join_by_prop = function (arr, prop, split) {
-        var result = "";
-
-        for (var i = 0; i < arr.length; i++) {
-            result += arr[i][prop];
-
-            if (i < arr.length - 1) {
-                result += split;
-            }
-        }
-
-        return result;
-    };
-
     // PARSER: Various parser helper functions
     var Parser = {
         // Returns a pair of the line without the comment and the comment
@@ -148,10 +77,32 @@ var Utils = (function () {
             return { without: without, comment: comment };
         },
 
+        // Joins an array by the propery of one of its objects
+        join_by_prop: function (arr, prop, split) {
+            var result = "";
+
+            for (var i = 0; i < arr.length; i++) {
+                result += arr[i][prop];
+
+                if (i < arr.length - 1) {
+                    result += split;
+                }
+            }
+
+            return result;
+        },
+
+        // Wrapper for String.match that handles the case of no matches with an empty array instead of null
+        apply_regex: function (regex, input) {
+            var result = input.match(regex);
+
+            return result ? result : [];
+        },
+
         // Escapes spaces in string literals with '~@&'
         // Also handles the ' ' character
         escape_strings: function(input) {
-            var matches = apply_regex(regex_string_escape, input);
+            var matches = Parser.apply_regex(regex_string_escape, input);
             var temp = input.replace(regex_string_escape, "#");
 
             for (var i = 0; i < matches.length; i++) {
@@ -168,18 +119,61 @@ var Utils = (function () {
             return temp;
         },
 
-        // Wrapper to const_to_val that return null instead of an exception
+        // const_to_val: Converts a string to an integer value
+        // NOTE: Does not check bounds or enforce signed/unsigned.
         const_to_val: function(input) {
-            try {
-                return const_to_val(input, 0);
-            } catch (e) {
-                return null;
+            // Is this hex or a plain integer?
+            if (regex_hex.test(input) || regex_integer.test(input)) {
+                return Number(input);
             }
+
+            // Is this binary?
+            if (regex_binary.test(input)) {
+                var result = 0;
+                var multiplier = 1;
+                var bits = input.replace(regex_binary, "$2");
+
+                for (var i = bits.length - 1; i >= 0; i--) {
+                    if (bits[i] == '1') {
+                        result += multiplier;
+                    }
+                    multiplier *= 2;
+                }
+
+                return result;
+            }
+
+            // Is this a charaster?
+            var unescaped = Parser.unescape_string(input);
+            if (regex_char.test(unescaped)) {
+                if (unescaped.length === 3) {
+                    return unescaped.charCodeAt(1);
+                } else {
+                    // Special characters like \n
+                    if (unescaped === "'\\n'") {
+                        return "\n".charCodeAt(0)
+                    }
+                    if (unescaped === "'\\t'") {
+                        return "\t".charCodeAt(0)
+                    }
+
+                    // No match? FAIL.
+                    throw get_error(0, [input, line]);
+                }
+            }
+
+            // If we made it here, return null
+            return null;
         },
 
         // Replaces escaped spaces with spaces in string literals
+        // Also handles other escaped characters
         unescape_string: function(input) {
-            return input.replace(new RegExp("~@&", "g"), " ");
+            var step1 = input.replace(new RegExp("~@&", "g"), " ");
+            var step2 = step1.replace(/\\n/gi, "\n");
+            var step3 = step2.replace(/\\t/gi, "\t");
+            var step4 = step3.replace(/\\0/gi, "\0");
+            return step4;
         },
 
         // Returns a pair of offset, register, and the rest (if found) or null
@@ -452,10 +446,7 @@ var Utils = (function () {
     // Return out the interface
     return {
         get: get,
-        const_to_val: const_to_val,
-        join_by_prop: join_by_prop,
         get_error: get_error,
-        apply_regex: apply_regex,
         Parser: Parser,
         Type: Type,
         Math: Math
