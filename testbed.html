@@ -15,13 +15,25 @@
             border-collapse: collapse;
         }
 
-        td {
+        .bordered td {
             border: 1px solid black;
             padding: 3px;
         }
 
+        td {
+            vertical-align: top;
+        }
+
         body {
             font-family: Arial;
+        }
+
+        #left {
+            font-size: 10pt;
+        }
+
+        .highlight {
+            background-color: #CCCCCC;
         }
     </style>
 </head>
@@ -30,15 +42,32 @@
 <h1>MIPS Studio</h1>
 <textarea id="input" rows="12" cols="100" placeholder="MIPS goes here..."></textarea><br/><br/>
 <button id="parse">PARSE</button> <button id="run">RUN</button><hr/>
-<div id="results">Enter some MIPS assembly in the box above, then hit 'PARSE'.</div>
+<div id="parse_results">Enter some MIPS assembly in the box above, then hit 'PARSE' or 'RUN'.</div>
+<div id="runtime" style="display: none;">
+    <div id="runtime_buttons">
+        <button id="step">Step</button> <button id="end_step">Run to End (Stepped)</button> <button id="end_block">Run to End (Blocking)</button> <button id="reset" style="visibility:hidden;">Reset</button> <br/><hr/>
+    </div>
+
+    <div id="runtime_results">
+        <table>
+            <tr>
+                <td id="left" style="display:none;"></td>
+                <td id="right"></td>
+            </tr>
+        </table>
+    </div>
+</div>
 
 
 <script type="text/javascript">
     document.getElementById('parse').addEventListener('click', function () {
         var input = document.getElementById('input').value;
-        var div = document.getElementById('results');
+        var div = document.getElementById('parse_results');
         div.innerHTML = "";
         var result = MIPSParser.parse(input);
+
+        document.getElementById("runtime").style.display = "none";
+        div.style.display = "block";
 
         // Log to console
         console.log("Parse completed...");
@@ -63,26 +92,8 @@
         }
 
         // Draw the instrucitons
-        output += "<h3>Instructions</h3><table><tr><td>Instruction</td><td>Processed Line</td><td>Instructions</td><td>Comment</td></tr>";
-        var insts = result.text.raw;
-        for (var i = 0; i < insts.length; i++) {
-            var line_num = insts[i].line;
-            var processed_line = insts[i].text;
-            var comment = insts[i].comment;
-            var base = insts[i].base;
-            var text = insts[i].instructions;
-            
-            output += "<tr>";
-            output += "<td>" + (i + 1) + "</td>";
-            output += "<td>" + processed_line + "</td>"
-            output += "<td>";
-            for (var j = 0; j < text.length; j++) {
-                output += "[" + Utils.Math.to_hex((base + (j * 4))) + "] " + text[j].inst + " " + text[j].args.join(" ") + "<br/>";
-            }
-            output += "</td>";
-            output += "<td>" + comment + "</td></tr>";
-        }
-        output += "</table><br/>"
+        output += "<h3>Instructions</h3>";
+        output += draw_instructions(result.text.raw);
 
         // Draw the data segment
         output += "<h3>Data:</h3>";
@@ -94,34 +105,114 @@
 
     document.getElementById("run").addEventListener("click", function () {
         var input = document.getElementById('input').value;
-        var div = document.getElementById('results');
-        div.innerHTML = "";
+        var div = document.getElementById('runtime');
+
+        document.getElementById("parse_results").style.display = "none";
+        div.style.display = "block";
+        div.querySelector("#left").style.display = "none";
+
+        // Do the parse
         var parse = MIPSParser.parse(input);
 
         // Did the parse error?
         if (parse.error) {
-            div.innerHTML = "<h2 style='color: red'>ERROR!</h2><b>Code:</b> " + ((parse.code || parse.code === 0) ? parse.code : "None") + "<br/><b>Message: </b>" + parse.message;
+            div.querySelector("#right").innerHTML = "<h2 style='color: red'>ERROR!</h2><b>Code:</b> " + ((parse.code || parse.code === 0) ? parse.code : "None") + "<br/><b>Message: </b>" + parse.message;
             return;
         }
 
         var runtime = MIPSRuntime.create(parse.data, parse.text);
+        window.runtime = runtime; // Make it global
 
-        window.test_runtime = runtime;
+        // Render the isntructions
+        var right = document.getElementById("right");
+        right.innerHTML = draw_instructions(runtime.get_state().text.raw);
+        document.getElementById("left").style.display = "block";
+        update_state(runtime.get_state());
+    });
 
-        var result = runtime.run_to_end();
-        console.log("Run complete...");
-        console.log(result);
+    document.getElementById("step").addEventListener("click", function () {
+        if (!runtime) {
+            return;
+        }
 
+        var state = runtime.run_n(1);
+
+        update_state(state);
+    });
+
+    var step_fun = function () {
+        if (!runtime) {
+            return;
+        }
+
+        var state = runtime.run_n(5000);
+        update_state(state);
+
+        if (!state.has_exited) {
+            window.requestAnimationFrame(step_fun);
+        }
+    };
+
+    document.getElementById("end_step").addEventListener("click", step_fun);
+
+    document.getElementById("end_block").addEventListener("click", function () {
+        if (!runtime) {
+            return;
+        }
+
+        var state = runtime.run_to_end();
+
+        update_state(state);
+    });
+
+    document.getElementById("reset").addEventListener("click", function () {
+        if (!runtime) {
+            return;
+        }
+
+        var state = runtime.reset();
+
+        update_state(state);
+    });
+
+    var draw_instructions = function (insts) {
+        var output = "<table class='bordered'><tr class='highlight'><td>Instruction</td><td>Processed Line</td><td>Instructions</td><td>Comment</td></tr>";
+
+        for (var i = 0; i < insts.length; i++) {
+            var line_num = insts[i].line;
+            var processed_line = insts[i].text;
+            var comment = insts[i].comment;
+            var base = insts[i].base;
+            var text = insts[i].instructions;
+
+            output += "<tr id='" + Utils.Math.to_hex(insts[i].base) + "'>";
+            output += "<td>" + (i + 1) + "</td>";
+            output += "<td>" + processed_line + "</td>"
+            output += "<td>";
+            for (var j = 0; j < text.length; j++) {
+                output += "[" + Utils.Math.to_hex((base + (j * 4))) + "] " + text[j].inst + " " + text[j].args.join(" ") + "<br/>";
+            }
+            output += "</td>";
+            output += "<td>" + comment + "</td></tr>";
+        }
+        output += "</table><br/>"
+
+        return output;
+    }
+
+    var update_state = function (state) {
+        // Draw the left sidebar
+        var left = document.getElementById("left");
         var output = "";
-        output += "<b>Cycles:</b> " + result.cycles + "<br/><br/>";
-        output += "<b>Exited:</b> " + result.has_exited + "<br/><br/>";
-        output += "<b>Error:</b> " + JSON.stringify(result.error) + "<br/><br/>";
+        output += "<b>Cycles:</b> " + state.cycles + "<br/><br/>";
+        output += "<b>Exited:</b> " + state.has_exited + "<br/><br/>";
+        output += "<b>Error:</b> " + JSON.stringify(state.error) + "<br/><br/>";
         output += "<b>Registers (unsigned | signed | hex):</b><br/><br/>";
-        output += "PC: " + result.registers["PC"];
-        output += "<br/>HI: " + result.registers["HI"];
-        output += "<br/>LO: " + result.registers["LO"];
+        output += "PC: " + state.registers["PC"];
+        output += "<br/>HI: " + state.registers["HI"];
+        output += "<br/>LO: " + state.registers["LO"];
         for (var i = 0; i < 32; i++) {
-            var val = result.registers["$" + i];
+            var val = state.registers["$" + i];
             var unsigned = Utils.Math.to_unsigned(val, 32);
             var signed = Utils.Math.to_signed(val, 32);
             var hex = Utils.Math.to_hex(unsigned);
@@ -129,10 +220,37 @@
         }
 
         output += "<br/><br/><b>Output:</b><br/><br/>";
-        output += result.output.replace(/\n/g, "<br/>");
+        output += state.output.replace(/\n/g, "<br/>");
 
-        div.innerHTML = output;
-    });
+        left.innerHTML = output;
+
+        // Highlight the proper instructions
+        var highlighted = document.querySelector(".highlight");
+        if (highlighted) {
+            highlighted.classList.remove("highlight");
+        }
+        var to_highlight = document.getElementById(Utils.Math.to_hex(state.registers["PC"]));
+        if(to_highlight) {
+            to_highlight.classList.add("highlight");
+        }
+
+        // Handle the buttons
+        var step = document.getElementById("step");
+        var reset = document.getElementById("reset");
+        var end_step = document.getElementById("end_step");
+        var end_block = document.getElementById("end_block");
+        if (state.has_exited) {
+            step.disabled = true;
+            end_step.disabled = true;
+            end_block.disabled = true;
+            reset.disabled = false;
+        } else {
+            step.disabled = false;
+            end_step.disabled = false;
+            end_block.disabled = false;
+            reset.disabled = true;
+        }
+    }
 </script>
 
 </body>
