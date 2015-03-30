@@ -12,6 +12,12 @@ Currently, it is capable of:
 
 Try it out via testbed.html (test.s is an excellant sample program)!
 
+==========
+
+To compile for use with require.js: run "python compile.py" to create mips.js.
+
+==========
+
 In the future, I hope to:
 
 - Support .kdata, .ktext, and interrupts

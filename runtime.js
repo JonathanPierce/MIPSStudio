@@ -1,5 +1,5 @@
 // Returns an interpreter instance
-var MIPSRuntime = (function () {
+var Runtime = (function () {
     // Setup:
     // - Register hash table: PC, HI, LO, $0-31
     // - Create a new interpeter object
@@ -15,9 +15,6 @@ var MIPSRuntime = (function () {
     // --- Exit if we are one instruction before text segment (returned from main)
     // -- Run the mini-program associated with that instructions
     // -- Interpter can run for x cycles, or until error/exit.
-
-    // Acknowledge load
-    console.log('MIPSRuntime loaded.');
 
     // CONSTANTS
     var cycle_limit = 1000000; // Max number of instructions to run

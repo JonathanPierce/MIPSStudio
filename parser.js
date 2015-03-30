@@ -1,7 +1,4 @@
-var MIPSParser = (function () {
-    // Acknowledge load
-    console.log('MIPSParser loaded.');
-
+var Parser = (function () {
     // Constants
     var regex_useless = /;|,|\r|\v|\f|(^\s*\n)|^\s+/gim;
     var regex_spaces = /\ \ +|\t+/gmi;
