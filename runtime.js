@@ -76,18 +76,14 @@ var Runtime = (function () {
             "$31": 0
         };
 
-        // The stack. Will be created by init().
+        // The stack. Will be created by reset().
         var stack = null;
+
+        // The data segment. Will be created by reset from 'data'.
+        var data_segment = null;
 
         // Safely writes a value to a register
         var write_register = function (reg, value) {
-            // Make sure we aren't $0.
-            if (reg === "$0") {
-                // FAIL
-                throw Utils.get_error(16, [current_inst.text, current_inst.line]);
-            }
-
-            // Convert to unsigned, write the registers
             registers[reg] = Utils.Math.to_unsigned(value, 32);
         };
 
@@ -633,7 +629,7 @@ var Runtime = (function () {
                 // Are we within the data segment?
                 // If so, did we seg fault?
                 if (addr >= DataParser.base_address && addr <= DataParser.max_address) {
-                    var mem = data.segment;
+                    var mem = data_segment;
                     var hex = Utils.Math.to_hex(addr);
 
                     if (Utils.get(mem, hex) === null) {
@@ -744,13 +740,13 @@ var Runtime = (function () {
                 registers["$" + i] = 0;
             }
 
-            // TODO: Reset the data segment as well (hard to do in JavaScript)
+            // Reset the data segment as well
+            data_segment = data.segment();
 
             // Initalize $ra to a special address
             registers["$31"] = TextParser.base_address - 4;
 
             //  Create a stack segment, point $sp to the top.
-            stack = null;
             stack = DataParser.create_stack();
             registers["$29"] = DataParser.max_stack;
 
@@ -790,8 +786,7 @@ var Runtime = (function () {
                 registers: ret_registers,
                 has_exited: has_exited,
                 cycles: cycles,
-                data: data,
-                text: text,
+                data: data_segment,
                 stack: stack,
                 error: error,
                 output: output,

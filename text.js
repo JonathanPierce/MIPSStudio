@@ -5,6 +5,28 @@ var TextParser = (function () {
 
     // Validate all instructions
     var validate = function (raw) {
+        // Returns true iff no write is done to register
+        var check_zero_write = function (instructions) {
+            var non_writing = ["syscall", "sw", "sh", "sb", "jr", "jal", "j", "beq", "bne", "bgt", "blt", "ble", "bge"];
+
+            for (var i = 0; i < instructions.length; i++) {
+                var current = instructions[i];
+
+                // Some instruction's don't write
+                if (non_writing.indexOf(current.inst) !== -1 || current.args.length < 2) {
+                    continue;
+                }
+
+                // Check for a write to register zero
+                if (current.args[0] === "$0") {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Validate each instruction
         for (var i = 0; i < raw.length; i++) {
             // Split the instruction
             var current = raw[i].text.split(" ");
@@ -27,9 +49,15 @@ var TextParser = (function () {
                 current = current.slice(1);
                 var insts_or_null = func_or_null(current);
 
-                // TODO: raw[i].instructions = ... / error handling
-                if(insts_or_null) {
-                    raw[i].instructions = insts_or_null;
+                if (insts_or_null) {
+
+                    var no_write_zero = check_zero_write(insts_or_null);
+
+                    if (no_write_zero) {
+                        raw[i].instructions = insts_or_null;
+                    } else {
+                        throw Utils.get_error(16, [raw[i].text, raw[i].line]);
+                    }
                 } else {
                     throw Utils.get_error(11, [raw[i].text, raw[i].line]);
                 }
@@ -44,7 +72,9 @@ var TextParser = (function () {
 
     // Validates and converts individual (pseudo)instructions (returns 'null' on failure)
     var Insts = {
-        "add": function(args) {
+        "add": function (args, unsigned) {
+            var unsigned = unsigned ? "u" : "";
+
             // Correct args length?
             if(args.length !== 3) {
                 return null;
@@ -75,67 +105,24 @@ var TextParser = (function () {
 
             // Return final instruction(s)
             if(reg3) {
-                return [{ inst: "add", args: [reg1, reg2, reg3] }];
+                return [{ inst: "add" + unsigned, args: [reg1, reg2, reg3] }];
             }
 
             if(imm16 !== null) {
-                return [{inst: "addi", args: [reg1, reg2, imm16] }];
+                return [{inst: "addi" + unsigned, args: [reg1, reg2, imm16] }];
             }
 
             if(imm32 !== null) {
                 return [
                     { inst: "lui", args: ["$1", Utils.Math.top_16(imm32) ] },
                     { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32) ] },
-                    { inst: "add", args: [reg1, reg2, "$1"] }
+                    { inst: "add" + unsigned, args: [reg1, reg2, "$1"] }
                 ];
             }
         },
 
         "addu": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            // reg, reg, imm16
-            // reg, reg, imm32
-            var valid = false;
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            if (reg1 && reg2 && reg3) {
-                valid = true; // reg reg reg
-            } else {
-                var imm16 = Utils.Type.imm16(args[2]);
-                var imm32 = Utils.Type.imm32(args[2]);
-                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
-                    valid = true;
-                }
-            }
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            if (reg3) {
-                return [{ inst: "addu", args: [reg1, reg2, reg3] }];
-            }
-
-            if (imm16 !== null) {
-                return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
-            }
-
-            if (imm32 !== null) {
-                return [
-                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
-                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "addu", args: [reg1, reg2, "$1"] }
-                ];
-            }
+            return Insts.add(args, true);
         },
 
         "addi": function (args) {
@@ -182,7 +169,9 @@ var TextParser = (function () {
             return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
         },
 
-        "sub": function (args) {
+        "sub": function (args, unsigned) {
+            var unsigned = unsigned ? "u" : "";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -219,73 +208,24 @@ var TextParser = (function () {
 
             // Return final instruction(s)
             if (reg3) {
-                return [{ inst: "sub", args: [reg1, reg2, reg3] }];
+                return [{ inst: "sub" + unsigned, args: [reg1, reg2, reg3] }];
             }
 
             if (imm16 !== null) {
-                return [{ inst: "addi", args: [reg1, reg2, imm16] }];
+                return [{ inst: "addi" + unsigned, args: [reg1, reg2, imm16] }];
             }
 
             if (imm32 !== null) {
                 return [
                     { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
                     { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "sub", args: [reg1, reg2, "$1"] }
+                    { inst: "sub" + unsigned, args: [reg1, reg2, "$1"] }
                 ];
             }
         },
 
         "subu": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            // reg, reg, imm16
-            // reg, reg, imm32
-            var valid = false;
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            if (reg1 && reg2 && reg3) {
-                valid = true; // reg reg reg
-            } else {
-                var imm16 = Utils.Type.imm16(args[2]);
-                if (imm16 !== null) {
-                    imm16 = imm16 * -1;
-                    if (!Utils.Math.in_signed_range(imm16, 16)) {
-                        imm16 = null;
-                    }
-                }
-                var imm32 = Utils.Type.imm32(args[2]);
-                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
-                    valid = true;
-                }
-            }
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            if (reg3) {
-                return [{ inst: "subu", args: [reg1, reg2, reg3] }];
-            }
-
-            if (imm16 !== null) {
-                return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
-            }
-
-            if (imm32 !== null) {
-                return [
-                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
-                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "subu", args: [reg1, reg2, "$1"] }
-                ];
-            }
+            return Insts.sub(args, true);
         },
 
         "mult": function (args) {
@@ -496,7 +436,9 @@ var TextParser = (function () {
             return [ { inst: "lui", args: [reg1, imm16] } ];
         },
 
-        "and": function (args) {
+        "and": function (args, final) {
+            var final = final || "and";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -527,23 +469,25 @@ var TextParser = (function () {
 
             // Return final instruction(s)
             if (reg3) {
-                return [{ inst: "and", args: [reg1, reg2, reg3] }];
+                return [{ inst: final, args: [reg1, reg2, reg3] }];
             }
 
             if (imm16 !== null) {
-                return [{ inst: "andi", args: [reg1, reg2, imm16] }];
+                return [{ inst: final + "i", args: [reg1, reg2, imm16] }];
             }
 
             if (imm32 !== null) {
                 return [
                     { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
                     { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "and", args: [reg1, reg2, "$1"] }
+                    { inst: final, args: [reg1, reg2, "$1"] }
                 ];
             }
         },
 
-        "andi": function (args) {
+        "andi": function (args, final) {
+            var final = final || "andi";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -562,79 +506,20 @@ var TextParser = (function () {
             }
 
             // Return final instruction(s)
-            return [{ inst: "andi", args: [reg1, reg2, imm16] }];
+            return [{ inst: final, args: [reg1, reg2, imm16] }];
         },
 
         "or": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            // reg, reg, imm16
-            // reg, reg, imm32
-            var valid = false;
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            if (reg1 && reg2 && reg3) {
-                valid = true; // reg reg reg
-            } else {
-                var imm16 = Utils.Type.imm16u(args[2]);
-                var imm32 = Utils.Type.imm32(args[2]);
-                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
-                    valid = true;
-                }
-            }
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            if (reg3) {
-                return [{ inst: "or", args: [reg1, reg2, reg3] }];
-            }
-
-            if (imm16 !== null) {
-                return [{ inst: "ori", args: [reg1, reg2, imm16] }];
-            }
-
-            if (imm32 !== null) {
-                return [
-                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
-                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "or", args: [reg1, reg2, "$1"] }
-                ];
-            }
+            return Insts.and(args, "or");
         },
 
         "ori": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, imm16
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16u(args[2]);
-            var valid = reg1 && reg2 && (imm16 !== null);
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "ori", args: [reg1, reg2, imm16] }];
+            return Insts.andi(args, "ori");
         },
 
-        "xor": function (args) {
+        "xor": function (args, final) {
+            var final = final || "xor";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -653,29 +538,11 @@ var TextParser = (function () {
             }
 
             // Return final instruction(s)
-            return [{ inst: "xor", args: [reg1, reg2, reg3] }];
+            return [{ inst: final, args: [reg1, reg2, reg3] }];
         },
 
         "nor": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            var valid = reg1 && reg2 && reg3;
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "nor", args: [reg1, reg2, reg3] }];
+            return Insts.xor(args, "nor");
         },
 
         "syscall": function (args) {

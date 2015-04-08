@@ -28,27 +28,27 @@ var Parser = (function () {
             }
 
             // Split the comment from the body
-            var extracted = Utils.Parser.extract_comment(split[i]);
+            var raw_comment = Utils.Parser.extract_comment(split[i]);
 
             // Remove whitespace from the line
-            extracted.without = extracted.without.replace(regex_useless, "");
-            while (regex_spaces.test(extracted.without)) {
-                extracted.without = extracted.without.replace(regex_spaces, " ");
+            raw_comment.without = raw_comment.without.replace(regex_useless, "");
+            while (regex_spaces.test(raw_comment.without)) {
+                raw_comment.without = raw_comment.without.replace(regex_spaces, " ");
             }
-            extracted.without = extracted.without.replace(/(.*)\s+$/im, "$1");
+            raw_comment.without = raw_comment.without.replace(/(.*)\s+$/im, "$1");
 
             // Escape strings (for now, we'll unescape later)
-            extracted.without = Utils.Parser.escape_strings(extracted.without);
+            raw_comment.without = Utils.Parser.escape_strings(raw_comment.without);
 
             // Are we blank?
-            if (extracted.without === "") {
+            if (raw_comment.without === "") {
                 continue;
             }        
 
-            result.push({ line: (i + 1), text: extracted.without, comment: extracted.comment });
+            result.push({ line: (i + 1), text: raw_comment.without, comment: raw_comment.comment });
         }
 
-        // inline labels with the line they are labeling, also remove comments
+        // inline labels with the line they are labeling
         for (var i = 0; i < result.length - 1; i++) {
             if (regex_linelabel.test(result[i].text)) {
                 result[i + 1].text = result[i].text + " " + result[i + 1].text;
@@ -78,7 +78,7 @@ var Parser = (function () {
                 var value = Utils.Parser.const_to_val(input[i].text.replace(regex_constant, "$2"));
                 if (value === null) {
                     // FAIL
-                    throw get_error(0, [input[i].text, input[i].line]);
+                    throw Utils.get_error(0, [input[i].text, input[i].line]);
                 }
                 constants[name] = value;
                 input[i].text = "";

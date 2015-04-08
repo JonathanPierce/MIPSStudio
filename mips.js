@@ -1,8 +1,5 @@
 define(function() {
     var Utils = (function () {
-    // Acknowledge load
-    console.log('Utils loaded.');
-
     // Constants
     var regex_hex = /^0x[0-9a-fA-F]{1,8}$/mi;
     var regex_integer = /^-?[0-9]+$/mi;
@@ -20,35 +17,35 @@ define(function() {
     // get_error: Return a proper error to throw
     var get_error = function (index, args) {
         var error_codes = [
-        "Could not parse constant ($1) on line $2.",
+        "Could not parse constant (^1) on line ^2.",
         "More than one data segment detected. Your code should only have one '.data' directive.",
         "Your code needs exactly one .text directive.",
         "The data segment was not found before the text segment, or there was ancillary text above the text segment.",
-        "Data segment line $1 must have a valid type.",
-        "Argument '$1' is not compatible with type $2 on line $3.",
-        "No arguments were provided to data type $1 on line $2.",
-        "Max $1 segment size exceeded on line $2.",
-        "No match for label '$1' on line $2.",
-        "Label '$1' duplicated on line $2.",
-        "'$1' is not a valid instruction on line $2.",
-        "One or more arguments to instruction '$1' are not valid on line $2.",
+        "Data segment line ^1 must have a valid type.",
+        "Argument '^1' is not compatible with type ^2 on line ^3.",
+        "No arguments were provided to data type ^1 on line ^2.",
+        "Max ^1 segment size exceeded on line ^2.",
+        "No match for label '^1' on line ^2.",
+        "Label '^1' duplicated on line ^2.",
+        "'^1' is not a valid instruction on line ^2.",
+        "One or more arguments to instruction '^1' are not valid on line ^2.",
         "Your must have a label in your text segment called 'main'.",
         "Maximum cycle count exceeded.",
-        "No instruction at address $1.",
-        "An error occurred when performing instruction '$1' on line $2.",
-        "Instruction '$1' made an illegal attempt to write to register zero on line $2.",
-        "Integer overflow occured with instruction '$1' on line $2.",
-        "Illegal attempt to divide by zero on line $1.",
-        "Segmentation Fault on line $1. :(",
-        "Likely Stack Overflow on line $1. :(",
-        "Unaligned load or store on line $1."
+        "No instruction at address ^1.",
+        "An error occurred when performing instruction '^1' on line ^2.",
+        "Instruction '^1' made an illegal attempt to write to register zero on line ^2.",
+        "Integer overflow occured with instruction '^1' on line ^2.",
+        "Illegal attempt to divide by zero on line ^1.",
+        "Segmentation Fault on line ^1. :(",
+        "Likely Stack Overflow on line ^1. :(",
+        "Unaligned load or store on line ^1."
         ];
 
         var current = error_codes[index];
 
         args = args || [];
         for (var i = 0; i < args.length; i++) {
-            var to_replace = "$" + (i + 1);
+            var to_replace = "^" + (i + 1);
 
             current = current.replace(to_replace, args[i]);
         }
@@ -115,6 +112,7 @@ define(function() {
                 matches = matches.slice(1);
             }
 
+            // Handle the space character declaration
             temp = temp.replace(new RegExp("' '", "g"), "'~@&'");
 
             return temp;
@@ -125,7 +123,7 @@ define(function() {
         const_to_val: function(input) {
             // Is this hex or a plain integer?
             if (regex_hex.test(input) || regex_integer.test(input)) {
-                return Number(input);
+                return new Number(input);
             }
 
             // Is this binary?
@@ -174,7 +172,8 @@ define(function() {
             var step2 = step1.replace(/\\n/gi, "\n");
             var step3 = step2.replace(/\\t/gi, "\t");
             var step4 = step3.replace(/\\0/gi, "\0");
-            return step4;
+            var step5 = step4.replace(/\\r/gi, "\r");
+            return step5;
         },
 
         // Returns a pair of offset, register, and the rest (if found) or null
@@ -222,7 +221,7 @@ define(function() {
         }
     };
 
-    // TYPE: Validates that an element is valid for a given type (and perhaps does some cleanup)
+    // TYPE: Validates that a data element is valid for a given type (and perhaps does some cleanup)
     var Type = {
         word: function (elem) {
             // Are we a potential label?
@@ -461,6 +460,28 @@ define(function() {
 
     // Validate all instructions
     var validate = function (raw) {
+        // Returns true iff no write is done to register
+        var check_zero_write = function (instructions) {
+            var non_writing = ["syscall", "sw", "sh", "sb", "jr", "jal", "j", "beq", "bne", "bgt", "blt", "ble", "bge"];
+
+            for (var i = 0; i < instructions.length; i++) {
+                var current = instructions[i];
+
+                // Some instruction's don't write
+                if (non_writing.indexOf(current.inst) !== -1 || current.args.length < 2) {
+                    continue;
+                }
+
+                // Check for a write to register zero
+                if (current.args[0] === "$0") {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Validate each instruction
         for (var i = 0; i < raw.length; i++) {
             // Split the instruction
             var current = raw[i].text.split(" ");
@@ -483,9 +504,15 @@ define(function() {
                 current = current.slice(1);
                 var insts_or_null = func_or_null(current);
 
-                // TODO: raw[i].instructions = ... / error handling
-                if(insts_or_null) {
-                    raw[i].instructions = insts_or_null;
+                if (insts_or_null) {
+
+                    var no_write_zero = check_zero_write(insts_or_null);
+
+                    if (no_write_zero) {
+                        raw[i].instructions = insts_or_null;
+                    } else {
+                        throw Utils.get_error(16, [raw[i].text, raw[i].line]);
+                    }
                 } else {
                     throw Utils.get_error(11, [raw[i].text, raw[i].line]);
                 }
@@ -500,7 +527,9 @@ define(function() {
 
     // Validates and converts individual (pseudo)instructions (returns 'null' on failure)
     var Insts = {
-        "add": function(args) {
+        "add": function (args, unsigned) {
+            var unsigned = unsigned ? "u" : "";
+
             // Correct args length?
             if(args.length !== 3) {
                 return null;
@@ -531,67 +560,24 @@ define(function() {
 
             // Return final instruction(s)
             if(reg3) {
-                return [{ inst: "add", args: [reg1, reg2, reg3] }];
+                return [{ inst: "add" + unsigned, args: [reg1, reg2, reg3] }];
             }
 
             if(imm16 !== null) {
-                return [{inst: "addi", args: [reg1, reg2, imm16] }];
+                return [{inst: "addi" + unsigned, args: [reg1, reg2, imm16] }];
             }
 
             if(imm32 !== null) {
                 return [
                     { inst: "lui", args: ["$1", Utils.Math.top_16(imm32) ] },
                     { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32) ] },
-                    { inst: "add", args: [reg1, reg2, "$1"] }
+                    { inst: "add" + unsigned, args: [reg1, reg2, "$1"] }
                 ];
             }
         },
 
         "addu": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            // reg, reg, imm16
-            // reg, reg, imm32
-            var valid = false;
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            if (reg1 && reg2 && reg3) {
-                valid = true; // reg reg reg
-            } else {
-                var imm16 = Utils.Type.imm16(args[2]);
-                var imm32 = Utils.Type.imm32(args[2]);
-                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
-                    valid = true;
-                }
-            }
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            if (reg3) {
-                return [{ inst: "addu", args: [reg1, reg2, reg3] }];
-            }
-
-            if (imm16 !== null) {
-                return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
-            }
-
-            if (imm32 !== null) {
-                return [
-                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
-                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "addu", args: [reg1, reg2, "$1"] }
-                ];
-            }
+            return Insts.add(args, true);
         },
 
         "addi": function (args) {
@@ -638,7 +624,9 @@ define(function() {
             return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
         },
 
-        "sub": function (args) {
+        "sub": function (args, unsigned) {
+            var unsigned = unsigned ? "u" : "";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -675,73 +663,24 @@ define(function() {
 
             // Return final instruction(s)
             if (reg3) {
-                return [{ inst: "sub", args: [reg1, reg2, reg3] }];
+                return [{ inst: "sub" + unsigned, args: [reg1, reg2, reg3] }];
             }
 
             if (imm16 !== null) {
-                return [{ inst: "addi", args: [reg1, reg2, imm16] }];
+                return [{ inst: "addi" + unsigned, args: [reg1, reg2, imm16] }];
             }
 
             if (imm32 !== null) {
                 return [
                     { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
                     { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "sub", args: [reg1, reg2, "$1"] }
+                    { inst: "sub" + unsigned, args: [reg1, reg2, "$1"] }
                 ];
             }
         },
 
         "subu": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            // reg, reg, imm16
-            // reg, reg, imm32
-            var valid = false;
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            if (reg1 && reg2 && reg3) {
-                valid = true; // reg reg reg
-            } else {
-                var imm16 = Utils.Type.imm16(args[2]);
-                if (imm16 !== null) {
-                    imm16 = imm16 * -1;
-                    if (!Utils.Math.in_signed_range(imm16, 16)) {
-                        imm16 = null;
-                    }
-                }
-                var imm32 = Utils.Type.imm32(args[2]);
-                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
-                    valid = true;
-                }
-            }
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            if (reg3) {
-                return [{ inst: "subu", args: [reg1, reg2, reg3] }];
-            }
-
-            if (imm16 !== null) {
-                return [{ inst: "addiu", args: [reg1, reg2, imm16] }];
-            }
-
-            if (imm32 !== null) {
-                return [
-                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
-                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "subu", args: [reg1, reg2, "$1"] }
-                ];
-            }
+            return Insts.sub(args, true);
         },
 
         "mult": function (args) {
@@ -952,7 +891,9 @@ define(function() {
             return [ { inst: "lui", args: [reg1, imm16] } ];
         },
 
-        "and": function (args) {
+        "and": function (args, final) {
+            var final = final || "and";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -983,23 +924,25 @@ define(function() {
 
             // Return final instruction(s)
             if (reg3) {
-                return [{ inst: "and", args: [reg1, reg2, reg3] }];
+                return [{ inst: final, args: [reg1, reg2, reg3] }];
             }
 
             if (imm16 !== null) {
-                return [{ inst: "andi", args: [reg1, reg2, imm16] }];
+                return [{ inst: final + "i", args: [reg1, reg2, imm16] }];
             }
 
             if (imm32 !== null) {
                 return [
                     { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
                     { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "and", args: [reg1, reg2, "$1"] }
+                    { inst: final, args: [reg1, reg2, "$1"] }
                 ];
             }
         },
 
-        "andi": function (args) {
+        "andi": function (args, final) {
+            var final = final || "andi";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -1018,79 +961,20 @@ define(function() {
             }
 
             // Return final instruction(s)
-            return [{ inst: "andi", args: [reg1, reg2, imm16] }];
+            return [{ inst: final, args: [reg1, reg2, imm16] }];
         },
 
         "or": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            // reg, reg, imm16
-            // reg, reg, imm32
-            var valid = false;
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            if (reg1 && reg2 && reg3) {
-                valid = true; // reg reg reg
-            } else {
-                var imm16 = Utils.Type.imm16u(args[2]);
-                var imm32 = Utils.Type.imm32(args[2]);
-                if (reg1 && reg2 && (imm16 !== null || imm32 !== null)) {
-                    valid = true;
-                }
-            }
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            if (reg3) {
-                return [{ inst: "or", args: [reg1, reg2, reg3] }];
-            }
-
-            if (imm16 !== null) {
-                return [{ inst: "ori", args: [reg1, reg2, imm16] }];
-            }
-
-            if (imm32 !== null) {
-                return [
-                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
-                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
-                    { inst: "or", args: [reg1, reg2, "$1"] }
-                ];
-            }
+            return Insts.and(args, "or");
         },
 
         "ori": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, imm16
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var imm16 = Utils.Type.imm16u(args[2]);
-            var valid = reg1 && reg2 && (imm16 !== null);
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "ori", args: [reg1, reg2, imm16] }];
+            return Insts.andi(args, "ori");
         },
 
-        "xor": function (args) {
+        "xor": function (args, final) {
+            var final = final || "xor";
+
             // Correct args length?
             if (args.length !== 3) {
                 return null;
@@ -1109,29 +993,11 @@ define(function() {
             }
 
             // Return final instruction(s)
-            return [{ inst: "xor", args: [reg1, reg2, reg3] }];
+            return [{ inst: final, args: [reg1, reg2, reg3] }];
         },
 
         "nor": function (args) {
-            // Correct args length?
-            if (args.length !== 3) {
-                return null;
-            }
-
-            // Correct args types?
-            // reg, reg, reg
-            var reg1 = Utils.Type.reg(args[0]);
-            var reg2 = Utils.Type.reg(args[1]);
-            var reg3 = Utils.Type.reg(args[2]);
-            var valid = reg1 && reg2 && reg3;
-
-            // Fail if necessary
-            if (!valid) {
-                return null;
-            }
-
-            // Return final instruction(s)
-            return [{ inst: "nor", args: [reg1, reg2, reg3] }];
+            return Insts.xor(args, "nor");
         },
 
         "syscall": function (args) {
@@ -2043,9 +1909,6 @@ define(function() {
     
     // Module for parsing a data segment
 var DataParser = (function () {
-    // Acknowledge load
-    console.log('DataParser loaded.');
-
     // Constants
     var base_address = Utils.Parser.const_to_val("0x10000000");
     var max_address = Utils.Parser.const_to_val("0x10100000");
@@ -2295,7 +2158,7 @@ var DataParser = (function () {
 
             if (type === "byte") {
                 for (var j = 0; j < args.length; j++) {
-                    final[Utils.Math.to_hex(address)] = args[j];
+                    final[Utils.Math.to_hex(address)] = new Number(args[j]);
                     address++;
                 }
             }
@@ -2313,11 +2176,17 @@ var DataParser = (function () {
         return final;
     };
 
+    // Chains together the above to complete a data segment parse
     var parse = function (raw) {
         var post_validation = verify(raw);
         var post_label = gather_labels(post_validation);
-        // Good place for a debugger! Conversion complete, but hard to interpret, after next step.
-        var final_segment = to_final(post_label.data);
+
+        // Function for resetting the segment to tis original state (simply redo finalization)
+        var final_segment = function () {
+            var result = to_final(post_label.data);
+            return result;
+        };
+
 
         return {segment: final_segment, labels: post_label.labels};
     };
@@ -2377,27 +2246,27 @@ var DataParser = (function () {
             }
 
             // Split the comment from the body
-            var extracted = Utils.Parser.extract_comment(split[i]);
+            var raw_comment = Utils.Parser.extract_comment(split[i]);
 
             // Remove whitespace from the line
-            extracted.without = extracted.without.replace(regex_useless, "");
-            while (regex_spaces.test(extracted.without)) {
-                extracted.without = extracted.without.replace(regex_spaces, " ");
+            raw_comment.without = raw_comment.without.replace(regex_useless, "");
+            while (regex_spaces.test(raw_comment.without)) {
+                raw_comment.without = raw_comment.without.replace(regex_spaces, " ");
             }
-            extracted.without = extracted.without.replace(/(.*)\s+$/im, "$1");
+            raw_comment.without = raw_comment.without.replace(/(.*)\s+$/im, "$1");
 
             // Escape strings (for now, we'll unescape later)
-            extracted.without = Utils.Parser.escape_strings(extracted.without);
+            raw_comment.without = Utils.Parser.escape_strings(raw_comment.without);
 
             // Are we blank?
-            if (extracted.without === "") {
+            if (raw_comment.without === "") {
                 continue;
             }        
 
-            result.push({ line: (i + 1), text: extracted.without, comment: extracted.comment });
+            result.push({ line: (i + 1), text: raw_comment.without, comment: raw_comment.comment });
         }
 
-        // inline labels with the line they are labeling, also remove comments
+        // inline labels with the line they are labeling
         for (var i = 0; i < result.length - 1; i++) {
             if (regex_linelabel.test(result[i].text)) {
                 result[i + 1].text = result[i].text + " " + result[i + 1].text;
@@ -2427,7 +2296,7 @@ var DataParser = (function () {
                 var value = Utils.Parser.const_to_val(input[i].text.replace(regex_constant, "$2"));
                 if (value === null) {
                     // FAIL
-                    throw get_error(0, [input[i].text, input[i].line]);
+                    throw Utils.get_error(0, [input[i].text, input[i].line]);
                 }
                 constants[name] = value;
                 input[i].text = "";
@@ -2693,18 +2562,14 @@ var Runtime = (function () {
             "$31": 0
         };
 
-        // The stack. Will be created by init().
+        // The stack. Will be created by reset().
         var stack = null;
+
+        // The data segment. Will be created by reset from 'data'.
+        var data_segment = null;
 
         // Safely writes a value to a register
         var write_register = function (reg, value) {
-            // Make sure we aren't $0.
-            if (reg === "$0") {
-                // FAIL
-                throw Utils.get_error(16, [current_inst.text, current_inst.line]);
-            }
-
-            // Convert to unsigned, write the registers
             registers[reg] = Utils.Math.to_unsigned(value, 32);
         };
 
@@ -3250,7 +3115,7 @@ var Runtime = (function () {
                 // Are we within the data segment?
                 // If so, did we seg fault?
                 if (addr >= DataParser.base_address && addr <= DataParser.max_address) {
-                    var mem = data.segment;
+                    var mem = data_segment;
                     var hex = Utils.Math.to_hex(addr);
 
                     if (Utils.get(mem, hex) === null) {
@@ -3361,13 +3226,13 @@ var Runtime = (function () {
                 registers["$" + i] = 0;
             }
 
-            // TODO: Reset the data segment as well (hard to do in JavaScript)
+            // Reset the data segment as well
+            data_segment = data.segment();
 
             // Initalize $ra to a special address
             registers["$31"] = TextParser.base_address - 4;
 
             //  Create a stack segment, point $sp to the top.
-            stack = null;
             stack = DataParser.create_stack();
             registers["$29"] = DataParser.max_stack;
 
@@ -3407,8 +3272,7 @@ var Runtime = (function () {
                 registers: ret_registers,
                 has_exited: has_exited,
                 cycles: cycles,
-                data: data,
-                text: text,
+                data: data_segment,
                 stack: stack,
                 error: error,
                 output: output,

@@ -1,8 +1,5 @@
 // Module for parsing a data segment
 var DataParser = (function () {
-    // Acknowledge load
-    console.log('DataParser loaded.');
-
     // Constants
     var base_address = Utils.Parser.const_to_val("0x10000000");
     var max_address = Utils.Parser.const_to_val("0x10100000");
@@ -252,7 +249,7 @@ var DataParser = (function () {
 
             if (type === "byte") {
                 for (var j = 0; j < args.length; j++) {
-                    final[Utils.Math.to_hex(address)] = args[j];
+                    final[Utils.Math.to_hex(address)] = new Number(args[j]);
                     address++;
                 }
             }
@@ -270,11 +267,17 @@ var DataParser = (function () {
         return final;
     };
 
+    // Chains together the above to complete a data segment parse
     var parse = function (raw) {
         var post_validation = verify(raw);
         var post_label = gather_labels(post_validation);
-        // Good place for a debugger! Conversion complete, but hard to interpret, after next step.
-        var final_segment = to_final(post_label.data);
+
+        // Function for resetting the segment to tis original state (simply redo finalization)
+        var final_segment = function () {
+            var result = to_final(post_label.data);
+            return result;
+        };
+
 
         return {segment: final_segment, labels: post_label.labels};
     };

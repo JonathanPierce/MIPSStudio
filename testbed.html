@@ -41,7 +41,7 @@
 <div id="parse_results">Enter some MIPS assembly in the box above, then hit 'PARSE' or 'RUN'.</div>
 <div id="runtime" style="display: none;">
     <div id="runtime_buttons">
-        <button id="step">Step</button> <button id="end_step">Run to End (Stepped)</button> <button id="end_block">Run to End (Blocking)</button> <button id="reset" style="visibility:hidden;">Reset</button> <br/><hr/>
+        <button id="step">Step</button> <button id="end_step">Run to End (Stepped)</button> <button id="end_block">Run to End (Blocking)</button> <button id="reset">Reset</button> <br/><hr/>
     </div>
 
     <div id="runtime_results">
@@ -56,7 +56,7 @@
 
 
 <script type="text/javascript">
-    require(["mips"], function (MIPS) {
+    require(["mips", "tests"], function (MIPS, Tests) {
         document.getElementById('parse').addEventListener('click', function () {
             var input = document.getElementById('input').value;
             var div = document.getElementById('parse_results');
@@ -65,10 +65,6 @@
 
             document.getElementById("runtime").style.display = "none";
             div.style.display = "block";
-
-            // Log to console
-            console.log("Parse completed...");
-            console.log(result);
 
             // Did we error?
             if (result.error) {
@@ -94,7 +90,7 @@
 
             // Draw the data segment
             output += "<h3>Data:</h3>";
-            output += JSON.stringify(result.data.segment).replace(/[\{\}"]/g, "").split(",").join("\n");
+            output += JSON.stringify(result.data.segment()).replace(/[\{\}"]/g, "").split(",").join("\n");
 
             // Show the result
             div.innerHTML = output;
@@ -120,9 +116,9 @@
             var runtime = MIPS.Runtime.create(parse.data, parse.text);
             window.runtime = runtime; // Make it global
 
-            // Render the isntructions
+            // Render the instructions
             var right = document.getElementById("right");
-            right.innerHTML = draw_instructions(runtime.get_state().text.raw);
+            right.innerHTML = draw_instructions(parse.text.raw);
             document.getElementById("left").style.display = "block";
             update_state(runtime.get_state());
         });
@@ -248,6 +244,12 @@
                 reset.disabled = true;
             }
         }
+
+        // Function for running unit tests.
+        window.run_tests = function () {
+            Tests.run_tests(MIPS);
+        };
+        window.run_tests(); // Run automagically
     });
 </script>
 

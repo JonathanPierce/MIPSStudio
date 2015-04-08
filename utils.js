@@ -1,7 +1,4 @@
 var Utils = (function () {
-    // Acknowledge load
-    console.log('Utils loaded.');
-
     // Constants
     var regex_hex = /^0x[0-9a-fA-F]{1,8}$/mi;
     var regex_integer = /^-?[0-9]+$/mi;
@@ -19,35 +16,35 @@ var Utils = (function () {
     // get_error: Return a proper error to throw
     var get_error = function (index, args) {
         var error_codes = [
-        "Could not parse constant ($1) on line $2.",
+        "Could not parse constant (^1) on line ^2.",
         "More than one data segment detected. Your code should only have one '.data' directive.",
         "Your code needs exactly one .text directive.",
         "The data segment was not found before the text segment, or there was ancillary text above the text segment.",
-        "Data segment line $1 must have a valid type.",
-        "Argument '$1' is not compatible with type $2 on line $3.",
-        "No arguments were provided to data type $1 on line $2.",
-        "Max $1 segment size exceeded on line $2.",
-        "No match for label '$1' on line $2.",
-        "Label '$1' duplicated on line $2.",
-        "'$1' is not a valid instruction on line $2.",
-        "One or more arguments to instruction '$1' are not valid on line $2.",
+        "Data segment line ^1 must have a valid type.",
+        "Argument '^1' is not compatible with type ^2 on line ^3.",
+        "No arguments were provided to data type ^1 on line ^2.",
+        "Max ^1 segment size exceeded on line ^2.",
+        "No match for label '^1' on line ^2.",
+        "Label '^1' duplicated on line ^2.",
+        "'^1' is not a valid instruction on line ^2.",
+        "One or more arguments to instruction '^1' are not valid on line ^2.",
         "Your must have a label in your text segment called 'main'.",
         "Maximum cycle count exceeded.",
-        "No instruction at address $1.",
-        "An error occurred when performing instruction '$1' on line $2.",
-        "Instruction '$1' made an illegal attempt to write to register zero on line $2.",
-        "Integer overflow occured with instruction '$1' on line $2.",
-        "Illegal attempt to divide by zero on line $1.",
-        "Segmentation Fault on line $1. :(",
-        "Likely Stack Overflow on line $1. :(",
-        "Unaligned load or store on line $1."
+        "No instruction at address ^1.",
+        "An error occurred when performing instruction '^1' on line ^2.",
+        "Instruction '^1' made an illegal attempt to write to register zero on line ^2.",
+        "Integer overflow occured with instruction '^1' on line ^2.",
+        "Illegal attempt to divide by zero on line ^1.",
+        "Segmentation Fault on line ^1. :(",
+        "Likely Stack Overflow on line ^1. :(",
+        "Unaligned load or store on line ^1."
         ];
 
         var current = error_codes[index];
 
         args = args || [];
         for (var i = 0; i < args.length; i++) {
-            var to_replace = "$" + (i + 1);
+            var to_replace = "^" + (i + 1);
 
             current = current.replace(to_replace, args[i]);
         }
@@ -114,6 +111,7 @@ var Utils = (function () {
                 matches = matches.slice(1);
             }
 
+            // Handle the space character declaration
             temp = temp.replace(new RegExp("' '", "g"), "'~@&'");
 
             return temp;
@@ -124,7 +122,7 @@ var Utils = (function () {
         const_to_val: function(input) {
             // Is this hex or a plain integer?
             if (regex_hex.test(input) || regex_integer.test(input)) {
-                return Number(input);
+                return new Number(input);
             }
 
             // Is this binary?
@@ -173,7 +171,8 @@ var Utils = (function () {
             var step2 = step1.replace(/\\n/gi, "\n");
             var step3 = step2.replace(/\\t/gi, "\t");
             var step4 = step3.replace(/\\0/gi, "\0");
-            return step4;
+            var step5 = step4.replace(/\\r/gi, "\r");
+            return step5;
         },
 
         // Returns a pair of offset, register, and the rest (if found) or null
@@ -221,7 +220,7 @@ var Utils = (function () {
         }
     };
 
-    // TYPE: Validates that an element is valid for a given type (and perhaps does some cleanup)
+    // TYPE: Validates that a data element is valid for a given type (and perhaps does some cleanup)
     var Type = {
         word: function (elem) {
             // Are we a potential label?
