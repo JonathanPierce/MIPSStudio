@@ -3,255 +3,28 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <title>MIPS Studio Testbed</title>
+    <title>MIPS Studio</title>
+    <script type="text/javascript" src="react/JSXTransformer.js"></script>
+    <script type="text/javascript" src="react/react.js"></script>
+    <script type="text/jsx" src="react/components.js"></script>
     <script type="text/javascript" src="require.js"></script>
+    <link rel="stylesheet" href="style.css" type="text/css">
 
-    <style type="text/css">
-        table {
-            border-collapse: collapse;
-        }
-
-        .bordered td {
-            border: 1px solid black;
-            padding: 3px;
-        }
-
-        td {
-            vertical-align: top;
-        }
-
-        body {
-            font-family: Arial;
-        }
-
-        #left {
-            font-size: 10pt;
-        }
-
-        .highlight {
-            background-color: #CCCCCC;
-        }
-    </style>
+    <script type="text/javascript">
+        window.onload = function () {
+            require(["mips", "tests"], function (MIPS, Tests) {
+                // Render the UI (this is really it.)
+                React.render(
+                    React.createElement(Studio, {
+                        MIPS: MIPS,
+                        Tests: Tests
+                    }),
+                    document.querySelector('body')
+                );
+            });
+        };
+    </script>
 </head>
 <body>
-
-<h1>MIPS Studio</h1>
-<textarea id="input" rows="12" cols="100" placeholder="MIPS goes here..."></textarea><br/><br/>
-<button id="parse">PARSE</button> <button id="run">RUN</button><hr/>
-<div id="parse_results">Enter some MIPS assembly in the box above, then hit 'PARSE' or 'RUN'.</div>
-<div id="runtime" style="display: none;">
-    <div id="runtime_buttons">
-        <button id="step">Step</button> <button id="end_step">Run to End (Stepped)</button> <button id="end_block">Run to End (Blocking)</button> <button id="reset">Reset</button> <br/><hr/>
-    </div>
-
-    <div id="runtime_results">
-        <table>
-            <tr>
-                <td id="left" style="display:none;"></td>
-                <td id="right"></td>
-            </tr>
-        </table>
-    </div>
-</div>
-
-
-<script type="text/javascript">
-    require(["mips", "tests"], function (MIPS, Tests) {
-        document.getElementById('parse').addEventListener('click', function () {
-            var input = document.getElementById('input').value;
-            var div = document.getElementById('parse_results');
-            div.innerHTML = "";
-            var result = MIPS.Parser.parse(input);
-
-            document.getElementById("runtime").style.display = "none";
-            div.style.display = "block";
-
-            // Did we error?
-            if (result.error) {
-                div.innerHTML = "<h2 style='color: red'>ERROR!</h2><b>Code:</b> " + ((result.code || result.code === 0) ? result.code : "None") + "<br/><b>Message: </b>" + result.message;
-                return;
-            }
-
-            // Draw the results
-            var output = "";
-            output += "<h2 style='color: green'>Success!</h2>";
-            output += "<h3>Constants:</h3>";
-
-            // Draw the constants
-            for (member in result.constants) {
-                if (result.constants.hasOwnProperty(member)) {
-                    output += member + ": " + result.constants[member] + " (" + MIPS.Utils.Math.to_hex(result.constants[member]) + ")<br/>";
-                }
-            }
-
-            // Draw the instrucitons
-            output += "<h3>Instructions</h3>";
-            output += draw_instructions(result.text.raw);
-
-            // Draw the data segment
-            output += "<h3>Data:</h3>";
-            output += JSON.stringify(result.data.segment()).replace(/[\{\}"]/g, "").split(",").join("\n");
-
-            // Show the result
-            div.innerHTML = output;
-        });
-
-        document.getElementById("run").addEventListener("click", function () {
-            var input = document.getElementById('input').value;
-            var div = document.getElementById('runtime');
-
-            document.getElementById("parse_results").style.display = "none";
-            div.style.display = "block";
-            div.querySelector("#left").style.display = "none";
-
-            // Do the parse
-            var parse = MIPS.Parser.parse(input);
-
-            // Did the parse error?
-            if (parse.error) {
-                div.querySelector("#right").innerHTML = "<h2 style='color: red'>ERROR!</h2><b>Code:</b> " + ((parse.code || parse.code === 0) ? parse.code : "None") + "<br/><b>Message: </b>" + parse.message;
-                return;
-            }
-
-            var runtime = MIPS.Runtime.create(parse.data, parse.text);
-            window.runtime = runtime; // Make it global
-
-            // Render the instructions
-            var right = document.getElementById("right");
-            right.innerHTML = draw_instructions(parse.text.raw);
-            document.getElementById("left").style.display = "block";
-            update_state(runtime.get_state());
-        });
-
-        document.getElementById("step").addEventListener("click", function () {
-            if (!runtime) {
-                return;
-            }
-
-            var state = runtime.run_n(1);
-
-            update_state(state);
-        });
-
-        var step_fun = function () {
-            if (!runtime) {
-                return;
-            }
-
-            var state = runtime.run_n(5000);
-            update_state(state);
-
-            if (!state.has_exited) {
-                window.requestAnimationFrame(step_fun);
-            }
-        };
-
-        document.getElementById("end_step").addEventListener("click", step_fun);
-
-        document.getElementById("end_block").addEventListener("click", function () {
-            if (!runtime) {
-                return;
-            }
-
-            var state = runtime.run_to_end();
-
-            update_state(state);
-        });
-
-        document.getElementById("reset").addEventListener("click", function () {
-            if (!runtime) {
-                return;
-            }
-
-            var state = runtime.reset();
-
-            update_state(state);
-        });
-
-        var draw_instructions = function (insts) {
-            var output = "<table class='bordered'><tr class='highlight'><td>Instruction</td><td>Processed Line</td><td>Instructions</td><td>Comment</td></tr>";
-
-            for (var i = 0; i < insts.length; i++) {
-                var line_num = insts[i].line;
-                var processed_line = insts[i].text;
-                var comment = insts[i].comment;
-                var base = insts[i].base;
-                var text = insts[i].instructions;
-
-                output += "<tr id='" + MIPS.Utils.Math.to_hex(insts[i].base) + "'>";
-                output += "<td>" + (i + 1) + "</td>";
-                output += "<td>" + processed_line + "</td>"
-                output += "<td>";
-                for (var j = 0; j < text.length; j++) {
-                    output += "[" + MIPS.Utils.Math.to_hex((base + (j * 4))) + "] " + text[j].inst + " " + text[j].args.join(" ") + "<br/>";
-                }
-                output += "</td>";
-                output += "<td>" + comment + "</td></tr>";
-            }
-            output += "</table><br/>"
-
-            return output;
-        }
-
-        var update_state = function (state) {
-            // Draw the left sidebar
-            var left = document.getElementById("left");
-            var output = "";
-            output += "<b>Cycles:</b> " + state.cycles + "<br/><br/>";
-            output += "<b>Exited:</b> " + state.has_exited + "<br/><br/>";
-            output += "<b>Error:</b> " + JSON.stringify(state.error) + "<br/><br/>";
-            output += "<b>Registers (unsigned | signed | hex):</b><br/><br/>";
-            output += "PC: " + state.registers["PC"];
-            output += "<br/>HI: " + state.registers["HI"];
-            output += "<br/>LO: " + state.registers["LO"];
-            for (var i = 0; i < 32; i++) {
-                var val = state.registers["$" + i];
-                var unsigned = MIPS.Utils.Math.to_unsigned(val, 32);
-                var signed = MIPS.Utils.Math.to_signed(val, 32);
-                var hex = MIPS.Utils.Math.to_hex(unsigned);
-                output += "<br/>$" + i + ": " + unsigned + " | " + signed + " | " + hex;
-            }
-
-            output += "<br/><br/><b>Output:</b><br/><br/>";
-            output += state.output.replace(/\n/g, "<br/>");
-
-            left.innerHTML = output;
-
-            // Highlight the proper instructions
-            var highlighted = document.querySelector(".highlight");
-            if (highlighted) {
-                highlighted.classList.remove("highlight");
-            }
-            var to_highlight = document.getElementById(MIPS.Utils.Math.to_hex(state.registers["PC"]));
-            if (to_highlight) {
-                to_highlight.classList.add("highlight");
-            }
-
-            // Handle the buttons
-            var step = document.getElementById("step");
-            var reset = document.getElementById("reset");
-            var end_step = document.getElementById("end_step");
-            var end_block = document.getElementById("end_block");
-            if (state.has_exited) {
-                step.disabled = true;
-                end_step.disabled = true;
-                end_block.disabled = true;
-                reset.disabled = false;
-            } else {
-                step.disabled = false;
-                end_step.disabled = false;
-                end_block.disabled = false;
-                reset.disabled = true;
-            }
-        }
-
-        // Function for running unit tests.
-        window.run_tests = function () {
-            Tests.run_tests(MIPS);
-        };
-        window.run_tests(); // Run automagically
-    });
-</script>
-
 </body>
 </html>

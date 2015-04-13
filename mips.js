@@ -335,7 +335,7 @@ define(function() {
             // Are we a valid SIGNED 16-bit immediate?
             // Most instructions will see an out of range 16-bit value as a valid 32-bit one.
             var result = Type.half(elem);
-            if (result !== null && Math.in_signed_range(result, 16)) {
+            if (result !== null) {
                 return Math.to_signed(result, 16);
             }
             return null;

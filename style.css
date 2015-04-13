@@ -1,0 +1,309 @@
+﻿/* Overall styles. */
+html {
+    height: 100%;
+}
+
+body {
+    width: 100%;
+    height: 100%;
+    font-family: "Segoe UI";
+    margin: 0px;
+    background-color: rgb(240,240,240);
+}
+
+.rounded {
+    border-radius: 6px;
+}
+
+.noselect {
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+
+.fullscreen {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+/* Define the main body. */
+.main {
+    width: 100%;
+    height: 100%;
+}
+
+.header {
+    width: 100%;
+    height: 40px;
+    background-color: rgb(110, 10, 10);
+    color: rgb(240,240,240);
+    line-height: 36px;
+    z-index: 10;
+}
+
+    .header .title {
+        font-size: 24pt;
+        font-weight: 200;
+        margin-left: 24px;
+    }
+
+    .header .subtitle {
+        font-size: 18pt;
+        color: rgb(220,220,220);
+        font-weight: 200;
+        margin-left: 8px;
+    }
+
+    .header .test_button {
+        float: right;
+        margin-right: 12px;
+        margin-top: 6px;
+        color: rgb(240,240,240);
+        border: 1px solid rgb(240,240,240);
+        background: none;
+        padding: 4px;
+        transition: 0.06s ease-in-out all;
+    }
+
+        .header .test_button:hover {
+            background: rgb(150,10,10);
+        }
+
+        .header .test_button:active {
+            background: rgb(240,240,240);
+            color: rgb(110,10,10);
+        }
+
+.content {
+    height: calc(100% - 40px);
+    padding: 0px;
+    margin: 0px;
+}
+
+.main .floater {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    background: white;
+    border: 2px solid rgb(110,10,10);
+    padding: 4px 8px 4px 8px;
+    border-radius: 6px;
+}
+
+    .floater .floater_button {
+        font-size: 14pt;
+        font-weight: 200;
+        cursor: pointer;
+        margin-top: 3px;
+        margin-bottom: 3px;
+    }
+
+    .floater_button .glyph {
+        font-family: "Segoe UI Symbol";
+        margin-right: 6px;
+        transition: 0.1s ease-in-out all;
+        transform-origin: 50% 50%;
+        min-width: 32px;
+        display: inline-block;
+        text-align: center;
+    }
+
+        .floater_button:hover .glyph {
+            color: rgb(110,10,10);
+        }
+
+        .floater_button:active {
+            transform: scale(0.9);
+        }
+
+/* Stuff for the code edtior. */
+.editor {
+    width: calc(100% - 50px);
+    height: calc(100% - 40px);
+    padding-left: 12px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    margin: 0px;
+    box-sizing: border-box;
+    background: none;
+    border: none;
+    position: absolute;
+    left: 50px;
+    font-size: 10pt;
+    font-family: Courier New, Courier, monospace;
+}
+
+.line_indicator {
+    position: absolute;
+    left: 0px;
+    top: 40px;
+    width: 50px;
+    height: calc(100% - 40px);
+    font-size: 10pt;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    font-family: Courier New, Courier, monospace;
+    text-align: right;
+    box-sizing: border-box;
+    overflow: hidden;
+    color: rgb(80,80,80);
+}
+
+/* Error messages. */
+.error {
+    margin-left: 24px;
+    margin-top: 24px;
+}
+.error h1 {
+    font-size: 24pt;
+    color: red;
+    font-weight: 200;
+    line-height: 0px;
+}
+
+.error h2 {
+    font-size: 14pt;
+    font-weight: 200;
+    margin: 0px;
+}
+
+.error h3 {
+    font-size: 10pt;
+    font-weight: 200;
+    color: rgb(128,128,128);
+    margin: 0px;
+}
+
+/* Runtime stuff. */
+.runscreen {
+    box-sizing: border-box;
+    position: absolute;
+    width: 100%;
+    height: calc(100% - 40px);
+}
+
+.runscreen .left {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 300px;
+}
+
+.runscreen .right {
+    position: absolute;
+    left: 300px;
+    top: 0px;
+    width: calc(100% - 300px);
+    height: 100%;
+    overflow: auto;
+}
+
+.runscreen .instruction_list {
+    width: 98%;
+    border-collapse: collapse;
+    margin: 12px;
+    font-size: 10pt;
+    box-sizing: border-box;
+}
+
+.runscreen .instruction_list td {
+    border: 1px solid black;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.runscreen .instruction_list .header {
+    background-color: rgb(50,50,50);
+    color: white;
+    font-size: 11pt;
+    font-weight: 200;
+    line-height: 0px;
+    height: 28px;
+}
+
+.instruction_list .PC {
+    color: rgb(80,80,80);
+    margin-right: 12px;
+}
+
+.instruction_list .highlight {
+    background-color: rgb(200,200,200);
+    font-weight: 600;
+    color: rgb(110,10,10);
+}
+
+.sidebar {
+    padding-left: 12px;
+}
+
+    .sidebar .cycle_info {
+        margin-bottom: 12px;
+    }
+
+    .sidebar .reglist {
+        margin-bottom: 12px;
+    }
+
+    .sidebar .mainregs {
+        height: 500px;
+        width: 100%;
+        overflow: auto;
+    }
+
+    .sidebar .section_name {
+        font-size: 9pt;
+        color: rgb(50,50,50);
+        font-weight: 200;
+    }
+
+    .sidebar textarea {
+        width: 100%;
+        height: 150px;
+    }
+
+.word_display {
+    padding: 2px;
+    font-size: 11pt;
+}
+
+    .word_display .name {
+        margin-right: 8px;
+        font-weight: 600;
+    }
+
+    .reglist .name {
+        min-width: 60px;
+        display: inline-block;
+        text-align: right;
+    }
+
+    .word_display .toggles {
+        float: right;
+        display: inline-block;
+        visibility: hidden;
+    }
+
+    .word_display:hover .toggles {
+        visibility: visible;
+    }
+
+    .word_display .toggles span {
+        width: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-block;
+        text-align: center;
+        margin-left: 2px;
+    }
+
+    .word_display .toggles span:hover {
+        background-color: rgb(200,200,200);
+    }
+
+    .word_display .toggles .highlight {
+        color: rgb(110,10,10);
+        border: 1px solid rgb(110,10,10);
+    }
