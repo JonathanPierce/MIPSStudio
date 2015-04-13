@@ -12,6 +12,8 @@ Currently, it is capable of:
 
 Try it out via testbed.html (test.s is an excellant sample MIPS program)!
 
+Note that unit tests run as soon as testbed.html is opened. Check your web console for results.
+
 ==========
 
 ## Compilation
@@ -24,7 +26,7 @@ To compile for use with require.js: run "python compile.py" to create mips.js.
 
 With require (assuming mips.js is in the same diretory as the calling script):
 
-''''javascript
+```javascript
 require(["mips"], function(MIPS) {
 	var text = "mips code here";
 	// 'text' is the MIPS we want to parse/run as a javascript string
@@ -39,7 +41,7 @@ require(["mips"], function(MIPS) {
 		var state = runtime.run_to_end();
 	}
 });
-''''
+```
 
 ### Parser Results
 
