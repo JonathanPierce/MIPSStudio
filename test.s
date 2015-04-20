@@ -133,4 +133,3 @@ main:
 	lw	$ra, 0($sp)
 	add	$sp, $sp, 4
 	jr	$ra
-

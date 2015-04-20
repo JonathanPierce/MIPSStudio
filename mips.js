@@ -982,10 +982,14 @@ define(function() {
 
             // Correct args types?
             // reg, reg, reg
+            // reg, reg, imm16
+            // reg, reg, imm32
             var reg1 = Utils.Type.reg(args[0]);
             var reg2 = Utils.Type.reg(args[1]);
             var reg3 = Utils.Type.reg(args[2]);
-            var valid = reg1 && reg2 && reg3;
+            var imm16 = Utils.Type.imm16u(args[2]);
+            var imm32 = Utils.Type.imm32(args[2]);
+            var valid = reg1 && reg2 && (reg3 || (imm16 !== null) || (imm32 !== null));
 
             // Fail if necessary
             if (!valid) {
@@ -993,7 +997,24 @@ define(function() {
             }
 
             // Return final instruction(s)
-            return [{ inst: final, args: [reg1, reg2, reg3] }];
+            if (reg3) {
+                return [{ inst: final, args: [reg1, reg2, reg3] }];
+            }
+
+            if (imm16) {
+                return [
+                    { inst: "ori", args: ["$1", "$0", imm16] },
+                    { inst: final, args: [reg1, reg2, "$1"] }
+                ];
+            }
+
+            if (imm32) {
+                return [
+                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
+                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
+                    { inst: final, args: [reg1, reg2, "$1"] }
+                ];
+            }
         },
 
         "nor": function (args) {
@@ -1719,6 +1740,26 @@ define(function() {
 
             rest.splice(0, 0, first);
             return rest;
+        },
+
+        "bgtz": function (args) {
+            // Correct args length?
+            if (args.length !== 2) {
+                return null;
+            }
+
+            // Pass on to bgt
+            return Insts.bgt([args[0], "0", args[1]]);
+        },
+
+        "bltz": function (args) {
+            // Correct args length?
+            if (args.length !== 2) {
+                return null;
+            }
+
+            // Pass on to blt
+            return Insts.blt([args[0], "0", args[1]]);
         }
     };
 
@@ -1887,7 +1928,6 @@ define(function() {
     };
 
     var parse = function (raw_insts, data_labels) {
-        // TEMP
         var validated = validate(raw_insts);
         var labeled = gather_labels(validated, data_labels);
         var finalized = finalize(labeled.text);
@@ -2573,6 +2613,22 @@ var Runtime = (function () {
             registers[reg] = Utils.Math.to_unsigned(value, 32);
         };
 
+        // An array of line numbers (in original text) to break on
+        var breakpoints = [];
+        var breaked = false;
+
+        // Adds/removes a breakpoint to/from the list appropriately
+        var toggle_breakpoint = function (point) {
+            var index = breakpoints.indexOf(point);
+            if (index === -1) {
+                breakpoints.push(point);
+            } else {
+                breakpoints.splice(index, 1);
+            }
+
+            return get_state();
+        };
+
         // Mini-program that executes a single instruction.
         var programs = {
             "lui": function (args) {
@@ -3189,19 +3245,50 @@ var Runtime = (function () {
                 has_exited = true;
             }
         };
+
+        // Returns true iff a breakpoint has been reached
+        var has_hit_breakpoint = function () {
+            var PC_hex = Utils.Math.to_hex(registers["PC"]);
+            var inst = Utils.get(text.segment, PC_hex);
+
+            if (breaked) {
+                // Allow the program to continue after hitting a breakpoint
+                breaked = false;
+                debugger;
+                return false;
+            }
+
+            if (inst) {
+                var line = inst.raw.line;
+
+                if (breakpoints.indexOf(line) !== -1 && PC_hex == Utils.Math.to_hex(inst.raw.base)) {
+                    breaked = true;
+                    debugger;
+                    return true;
+                }
+            }
+
+            debugger;
+            return false;
+        }
         
         // Runs n instructions
         var run_n = function (n) {
             if (n < 1) {
-                return;
+                return get_state();
             }
 
             for (var i = 0; i < n; i++) {
-                run_cycle();
-
-                if (has_exited) {
+                var should_break = has_hit_breakpoint() && n > 1;
+                if (!should_break) {
+                    // The n>1 condition is not accounted for in has_hit_breakpoint
+                    breaked = false;
+                }
+                if (has_exited || should_break) {
                     break;
                 }
+
+                run_cycle();
             }
 
             return get_state();
@@ -3209,7 +3296,7 @@ var Runtime = (function () {
 
         // Runs until end or error
         var run_to_end = function () {
-            while (!has_exited) {
+            while (!has_exited && !has_hit_breakpoint()) {
                 run_cycle();
             }
 
@@ -3254,6 +3341,11 @@ var Runtime = (function () {
             // We have not exited
             has_exited = false;
 
+            // Remove any breakpoints
+            breakpoints = [];
+            breaked = false;
+
+            // Return out the clean state
             return get_state();
         };
 
@@ -3276,7 +3368,9 @@ var Runtime = (function () {
                 stack: stack,
                 error: error,
                 output: output,
-                current_inst: current_inst
+                current_inst: current_inst,
+                breakpoints: breakpoints,
+                breaked: breaked
             }
         };
 
@@ -3288,7 +3382,8 @@ var Runtime = (function () {
             run_n: run_n,
             run_to_end: run_to_end,
             get_state: get_state,
-            reset: reset
+            reset: reset,
+            toggle_breakpoint: toggle_breakpoint
         };
     };
 

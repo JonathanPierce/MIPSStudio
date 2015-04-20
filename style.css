@@ -57,22 +57,28 @@ body {
         margin-left: 8px;
     }
 
-    .header .test_button {
-        float: right;
+    .header .button {
         margin-right: 12px;
+        margin-left: 12px;
         margin-top: 6px;
         color: rgb(240,240,240);
         border: 1px solid rgb(240,240,240);
         background: none;
         padding: 4px;
         transition: 0.06s ease-in-out all;
+        cursor: pointer;
+        vertical-align: super;
     }
 
-        .header .test_button:hover {
+    .header .test_button {
+        float: right;
+    }
+
+        .header .button:hover {
             background: rgb(150,10,10);
         }
 
-        .header .test_button:active {
+        .header .button:active {
             background: rgb(240,240,240);
             color: rgb(110,10,10);
         }
@@ -91,6 +97,7 @@ body {
     border: 2px solid rgb(110,10,10);
     padding: 4px 8px 4px 8px;
     border-radius: 6px;
+    box-shadow: 0px 0px 5px 2px rgb(50,50,50);
 }
 
     .floater .floater_button {
@@ -307,3 +314,110 @@ body {
         color: rgb(110,10,10);
         border: 1px solid rgb(110,10,10);
     }
+
+/* Stuff for breakpoints */
+.breakpoint .dot {
+    opacity: 0.1;
+    transition: 0.05s ease-in-out all;
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+.breakpoint:hover .dot {
+    opacity: 1.0;
+    transition: 0.05s ease-in-out all;
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+.breakpoint.breaked .dot {
+    opacity: 1.0;
+    color: red;
+}
+
+/* Overlay stuff. */
+.overlay {
+	padding: 12px;
+	position: absolute;
+	z-index: 100;
+	border-radius: 6px;
+	border: 2px solid rgb(110,10,10);
+	background: rgba(255,255,255,0.8);
+	width: 60%;
+	height: 60%;
+	left: 20%;
+	top: 20%;
+	box-shadow: 0px 0px 5px 2px rgb(50,50,50);
+	transform-origin: 50% 50%;
+	transition: 0.1s ease-in-out all;
+}
+
+.clickeater {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+	background: rgba(0,0,0,0.7);
+	z-index: 99;
+	cursor: pointer;
+}
+
+/* More popup stuff. */
+.popup h1 {
+    line-height: 0px;
+    margin-bottom: 24px;
+    font-weight: 200;
+    color: rgb(110,10,10);
+}
+
+.popup .project_list {
+    height: 250px;
+    margin-bottom: 12px;
+    margin-top: 36px;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid black;
+    overflow: auto;
+    background: white;
+}
+
+.popup .list_elem {
+    margin-bottom: 8px;
+    font-size: 14pt;
+    font-weight: 300;
+}
+
+.popup .list_elem .name {
+    cursor: pointer;
+    display: inline-block;
+}
+
+.popup .list_elem .name:hover {
+    text-decoration: underline;
+}
+
+.popup .list_elem .delete {
+    cursor: pointer;
+    display: inline-block;
+    color: rgb(200,200,200);
+    float: right;
+}
+
+.popup .list_elem .delete:hover {
+    color: rgb(110,10,10);
+}
+
+.popup .floater_button {
+    font-size: 16pt;
+    width: 160px;
+    cursor: pointer;
+}
+
+.popup input {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    font-size: 16pt;
+    padding: 6px;
+    width: 80%;
+}

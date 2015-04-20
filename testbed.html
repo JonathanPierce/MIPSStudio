@@ -4,13 +4,94 @@
 <head>
     <meta charset="utf-8" />
     <title>MIPS Studio</title>
-    <script type="text/javascript" src="react/JSXTransformer.js"></script>
-    <script type="text/javascript" src="react/react.js"></script>
-    <script type="text/jsx" src="react/components.js"></script>
-    <script type="text/javascript" src="require.js"></script>
-    <link rel="stylesheet" href="style.css" type="text/css">
+    <script type="text/javascript" src="/file?path=react/JSXTransformer.js"></script>
+    <script type="text/javascript" src="/file?path=react/react.js"></script>
+    <script type="text/jsx" src="/file?path=react/components.js"></script>
+    <script type="text/javascript" src="/file?path=require.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="/file?path=style.css" type="text/css">
 
     <script type="text/javascript">
+        // Create a small library for interacting with the database
+        var database = (function () {
+            var create = function (name,text,callback) {
+                var url = "/create?name=" + encodeURIComponent(name) + "&text=" + encodeURIComponent(text);
+                $.get(url, function (data) {
+                    callback(data);
+                });
+            };
+
+            var save = function (name, text, callback) {
+                var url = "/save?name=" + encodeURIComponent(name) + "&text=" + encodeURIComponent(text);
+                $.get(url, function (data) {
+                    callback(data);
+                });
+            };
+
+            var remove = function (name, callback) {
+                var url = "/delete?name=" + encodeURIComponent(name);
+                $.get(url, function (data) {
+                    callback(data);
+                });
+            };
+
+            var open = function (name, callback) {
+                var url = "/open?name=" + encodeURIComponent(name);
+                $.get(url, function (data) {
+                    callback(data);
+                });
+            };
+
+            var list = function (callback) {
+                var url = "/list";
+                $.get(url, function (data) {
+                    callback(data);
+                });
+            };
+
+            // Return out the interface
+            return {
+                create: create,
+                save: save,
+                remove: remove,
+                list: list,
+                open: open
+            }
+        })();
+
+        // Closes the current overlay, if any
+        var close_overlay = function () {
+            var overlay = document.querySelector('.overlay');
+            var to_remove = document.querySelector('.overlay');
+            to_remove.parentNode.removeChild(to_remove);
+            var to_remove = document.querySelector('.clickeater');
+            to_remove.parentNode.removeChild(to_remove);
+        };
+
+        // Wrapper to react to show an overlay
+        var show_overlay = function (comp, props) {
+            var display_overlay = function (content) {
+                var overlay = document.createElement('DIV');
+                overlay.setAttribute('class', 'overlay');
+                overlay.appendChild(content);
+
+                var clickeater = document.createElement('DIV');
+                clickeater.setAttribute('title', 'click to close the pop-up');
+                clickeater.setAttribute('class', 'clickeater');
+                // remove when clicked
+                clickeater.addEventListener('click', close_overlay);
+
+                document.body.appendChild(clickeater);
+                document.body.appendChild(overlay);
+            };
+
+            // Render the react component into the dummy element and display
+            var dummy = document.createElement("DIV");
+            var handle = React.render(React.createElement(comp, props), dummy);
+            display_overlay(dummy);
+        }
+
+        // Render the UI
         window.onload = function () {
             require(["mips", "tests"], function (MIPS, Tests) {
                 // Render the UI (this is really it.)
@@ -21,6 +102,9 @@
                     }),
                     document.querySelector('body')
                 );
+
+                // Test the overlay
+                // show_overlay(Breakpoint, { line_num: 666, breakpoints: { points: [1, 2, 3], toggle: null } });
             });
         };
     </script>

@@ -555,6 +555,28 @@ define(function () {
         }
     });
 
+    // Test new CS 242 Week 3 instructions
+    tests.push({
+        name: "Week 3 Instructions",
+        test: function (MIPS) {
+            var text = ".text\nmain:\nli $t0, 0xFFFFFFFF\nxor $t0, $t0, 0x55555555\nli $t1 0x0\nnor $t1, $t1, 0x55555555\nli $t2 0\nbgtz $t2 skip1\nli $t2 0x12345678\nskip1:\nli $t3 1\nbgtz $t3 skip2\nli $s0 0xDEADBEEF\nskip2: li $t4 0\nbltz $t4 skip3\nli $t4 0x12345678\nskip3: li $t5 -1\nbltz $t5 skip4\nli $s1 0xDEADBEEF\nskip4:\nli $s3, 0";
+
+            var parse = MIPS.Parser.parse(text);
+            var runtime = MIPS.Runtime.create(parse.data, parse.text);
+            var state = runtime.run_to_end();
+            var registers = state.registers;
+
+            assert.equals(registers["$8"], 0xAAAAAAAA);
+            assert.equals(registers["$9"], 0xAAAAAAAA);
+            assert.equals(registers["$10"], 0x12345678);
+            assert.equals(registers["$11"], 0x1);
+            assert.equals(registers["$12"], 0x12345678);
+            assert.equals(registers["$13"], 0xFFFFFFFF);
+            assert.equals(registers["$16"], 0x0);
+            assert.equals(registers["$17"], 0x0);
+        }
+    });
+
     // Runs the tests
     var run_tests = function (MIPS) {
         console.log("Running tests...");

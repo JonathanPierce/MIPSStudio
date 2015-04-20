@@ -527,10 +527,14 @@ var TextParser = (function () {
 
             // Correct args types?
             // reg, reg, reg
+            // reg, reg, imm16
+            // reg, reg, imm32
             var reg1 = Utils.Type.reg(args[0]);
             var reg2 = Utils.Type.reg(args[1]);
             var reg3 = Utils.Type.reg(args[2]);
-            var valid = reg1 && reg2 && reg3;
+            var imm16 = Utils.Type.imm16u(args[2]);
+            var imm32 = Utils.Type.imm32(args[2]);
+            var valid = reg1 && reg2 && (reg3 || (imm16 !== null) || (imm32 !== null));
 
             // Fail if necessary
             if (!valid) {
@@ -538,7 +542,24 @@ var TextParser = (function () {
             }
 
             // Return final instruction(s)
-            return [{ inst: final, args: [reg1, reg2, reg3] }];
+            if (reg3) {
+                return [{ inst: final, args: [reg1, reg2, reg3] }];
+            }
+
+            if (imm16) {
+                return [
+                    { inst: "ori", args: ["$1", "$0", imm16] },
+                    { inst: final, args: [reg1, reg2, "$1"] }
+                ];
+            }
+
+            if (imm32) {
+                return [
+                    { inst: "lui", args: ["$1", Utils.Math.top_16(imm32)] },
+                    { inst: "ori", args: ["$1", "$1", Utils.Math.bottom_16(imm32)] },
+                    { inst: final, args: [reg1, reg2, "$1"] }
+                ];
+            }
         },
 
         "nor": function (args) {
@@ -1264,6 +1285,26 @@ var TextParser = (function () {
 
             rest.splice(0, 0, first);
             return rest;
+        },
+
+        "bgtz": function (args) {
+            // Correct args length?
+            if (args.length !== 2) {
+                return null;
+            }
+
+            // Pass on to bgt
+            return Insts.bgt([args[0], "0", args[1]]);
+        },
+
+        "bltz": function (args) {
+            // Correct args length?
+            if (args.length !== 2) {
+                return null;
+            }
+
+            // Pass on to blt
+            return Insts.blt([args[0], "0", args[1]]);
         }
     };
 
@@ -1432,7 +1473,6 @@ var TextParser = (function () {
     };
 
     var parse = function (raw_insts, data_labels) {
-        // TEMP
         var validated = validate(raw_insts);
         var labeled = gather_labels(validated, data_labels);
         var finalized = finalize(labeled.text);

@@ -10,9 +10,12 @@ Currently, it is capable of:
 - Single-step or bulk interpetation of instructions
 - Providing useful errors and output
 
-Try it out via testbed.html (test.s is an excellant sample MIPS program)!
+Try it out via the testbed (test.s is an excellant sample MIPS program)! To run the testbed:
 
-Note that unit tests run as soon as testbed.html is opened. Check your web console for results.
+- Run "npm install mongodb" from your MIPSStudio directory to install the necessary node module
+- Start up MongoDB (see comments in server.js for an example command)
+- Run "node server.js" to start the server
+- Navigate to localhost:1337 in your browser.
 
 ==========
 
@@ -60,6 +63,7 @@ MIPS.Runtime.create(data_object, text_object) will create a runtime from the dat
 - run_to_end(): Runs the program until it terminates due to completion or error. Returns the state after completion.
 - get_state(): Returns the current state of the runtime.
 - reset(): Resets the runtime (and its memory) to its original state.
+- toggle_breakpoint(line): Toggles a breakpoint at line
 
 The runtime state object contains the following properties:
 
@@ -71,6 +75,8 @@ The runtime state object contains the following properties:
 - error: The current error, or null if none.
 - output: A string indicating what the MIPS program has printed to the virtual 'temrinal'
 - current_inst: The last executed instruction.
+- breakpoints: The current list of breakpoints.
+- breaked: True iff execution is stopped at a breakpoint.
 
 ==========
 
@@ -82,7 +88,6 @@ In the (distant) future, I hope to:
 - Support for basic extended addressing modes (eg: "lbu $a0 4+oldest($sp)")
 - Support for more isntructions and pseudoinstructions, and more intelligent psuedoinstruction conversion.
 - Support for lines with multiple labels
-- Support for custom IO modules (such as SPIMbot)
 - Support for ".globl" and multiple-file programs/linking
 - Protections aginst using $at, .setat, .setnoat
 
