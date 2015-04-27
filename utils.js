@@ -59,7 +59,7 @@ var Utils = (function () {
             return match;
         }
         return null;
-    }
+    };
 
     // PARSER: Various parser helper functions
     var Parser = {

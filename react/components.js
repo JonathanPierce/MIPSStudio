@@ -286,7 +286,7 @@ var RunScreen = React.createClass({
         var runtime = null;
         var state = null;
         if(parse_success) {
-            runtime = this.props.MIPS.Runtime.create(parse_result.data, parse_result.text);
+            runtime = this.props.MIPS.Runtime.create(parse_result.data, parse_result.text, spimbot.create());
             state = runtime.get_state();
         }
 
@@ -307,13 +307,14 @@ var RunScreen = React.createClass({
             runtime: this.state.runtime,
             state: result
         };
+        this.state.state.io.render();
         this.setState(state);
     },
-    run_end: function() {
+    run_end: function(num_steps) {
         // Runs the program until exit/error in a non-blocking fashion
         var that = this;
         var runner = function() {
-            var result = that.state.runtime.run_n(10000);
+            var result = that.state.runtime.run_n(num_steps);
             var state = {
                 parse_result: that.state.parse_result,
                 parse_success: that.state.parse_success,
@@ -321,6 +322,9 @@ var RunScreen = React.createClass({
                 state: result
             };
             that.setState(state);
+
+            // Render the bot
+            that.state.state.io.render();
 
             // Continue if not complete
             if(!result.has_exited && !result.breaked) {
@@ -341,6 +345,7 @@ var RunScreen = React.createClass({
             runtime: this.state.runtime,
             state: result
         };
+        this.state.state.io.render();
         this.setState(state);
     },
     toggle_breakpoint: function(line) {
@@ -361,10 +366,16 @@ var RunScreen = React.createClass({
         }
 
         // Collect together some handles to pass into the floater
+        var that = this;
         var handlers = {
-            run_step: this.run_step,
-            run_end: this.run_end,
-            reset: this.reset
+            run_end: function() {
+                that.run_end(10000);
+            },
+            run_slow: function() {
+                that.run_end(30);
+            },
+            run_step: that.run_step,
+            reset: that.reset
         };
 
         // Collect together some stuff related to breakpoints
@@ -425,7 +436,7 @@ var RunFloater = React.createClass({
             } else {
                 // Show the step and run to end buttons
                 var run_continue_text = this.props.state.state.breaked ? "Continue" : "Run To End";
-                buttons = [<FloaterButton action={this.props.handlers.run_step} glyph="" text="Step" />,<FloaterButton action={this.props.handlers.run_end} glyph="" text={run_continue_text} />];
+                buttons = [<FloaterButton action={this.props.handlers.run_step} glyph="" text="Step" key="run_step" />,<FloaterButton action={this.props.handlers.run_end} glyph="" text={run_continue_text} key="run" />, <FloaterButton action={this.props.handlers.run_slow} glyph="" text="Run Slowly" key="slow" />];
             }
 
             // Determine if there is a runtime error, and display it if so.
@@ -438,7 +449,7 @@ var RunFloater = React.createClass({
         return (
             <div className="floater noselect">
                 <span className="buttons">{ buttons }</span>
-                <FloaterButton action={this.props.toggle_mode} glyph="" text="Back To Edit" />
+                <FloaterButton action={this.props.toggle_mode} glyph="" text="Back To Edit" key="back" />
             </div>
         );
     }
@@ -520,6 +531,18 @@ var Breakpoint = React.createClass({
 
 // The runtime sidebar for displaying simulation status.
 var Sidebar = React.createClass({
+    getInitialState: function() {
+        return {
+            regs: true
+        };
+    },
+    toggle_mode: function() {
+        var mode = !this.state.regs;
+        if(mode === false) {
+            setTimeout(this.props.state.io.render, 150);
+        }
+        this.setState({regs: mode});
+    },
     render: function() {
         // Render all of the registers
         var registers = [];
@@ -574,9 +597,12 @@ var Sidebar = React.createClass({
             registers.push(<WordDisplay id={name} name={name} datavalue={this.props.state.registers[reg]} utils={this.props.utils} />)
         }
 
-        // Return the final sidebar
-        return (
-            <div className="sidebar">
+        // Show the correct button label
+        var label = this.state.regs ? "Show Map" : "Show Info";
+
+        // Render the normal sidebar contents
+        var info_contents = (
+            <div>
                 <div className="cycle_info">
                     <div className="word_display"><span className="name">Cycles Elapsed: </span>{this.props.state.cycles}</div>
                     <div className="word_display"><span className="name">Exited: </span>{this.props.state.has_exited ? "True" : "False" }</div>
@@ -597,6 +623,21 @@ var Sidebar = React.createClass({
                 <div className="console_info">
                     <textarea enabled="false" value={this.props.state.output} placeholder="no console output yet..."></textarea>
                 </div>
+            </div>
+        );
+
+        // Render the map contents
+        var map_contents = (
+            <canvas width="300" height="300" className="spimbot_canvas" />
+        );
+
+        // Return the final sidebar
+        var to_display = this.state.regs ? info_contents : map_contents;
+        return (
+            <div className="sidebar">
+                <FloaterButton text={label} action={this.toggle_mode} glyph="" />
+
+                { to_display }
             </div>
         );
     }

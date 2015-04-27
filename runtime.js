@@ -1,26 +1,10 @@
 // Returns an interpreter instance
 var Runtime = (function () {
-    // Setup:
-    // - Register hash table: PC, HI, LO, $0-31
-    // - Create a new interpeter object
-    // - Initalize $ra to a special address
-    // - Create a stack segment, point $sp to its beginning.
-    // - Match PC to the main label
-    // - Return this interpreter object
-    // Interpretation:
-    // - For each instruction:
-    // -- Load the instruction at the PC value:
-    // --- Error if PC % 4 !== 0
-    // --- Exit if we are one instruction past the end of the text segment
-    // --- Exit if we are one instruction before text segment (returned from main)
-    // -- Run the mini-program associated with that instructions
-    // -- Interpter can run for x cycles, or until error/exit.
-
     // CONSTANTS
     var cycle_limit = 1000000; // Max number of instructions to run
 
     // RETURNS A NEW INSTANCE OF AN INTERPRETER
-    var create = function (data, text) {
+    var create = function (data, text, io) {
         // Counts how many instructions have been executed
         var cycles = 0;
 
@@ -584,6 +568,15 @@ var Runtime = (function () {
         // Read/writes to memory
         var Memory = {
             read: function (addr, bytes) {
+                // Should this be done via IO?
+                if (io) {
+                    var hex_addr = Utils.Math.to_hex(addr);
+                    var funct = io.mem_map(hex_addr);
+                    if (funct) {
+                        return funct(true, data_segment, null);
+                    }
+                }
+
                 // Do we have a memory?
                 // (get_mem throws an exception on failure)
                 var memory = Memory.get_mem(addr);
@@ -613,6 +606,15 @@ var Runtime = (function () {
             },
 
             write: function (value, addr, bytes) {
+                // Should this be done via IO?
+                if (io) {
+                    var hex_addr = Utils.Math.to_hex(addr);
+                    var funct = io.mem_map(hex_addr);
+                    if (funct) {
+                        return funct(false, data_segment, value);
+                    }
+                }
+
                 // Do we have a memory?
                 // (get_mem throws an exception on failure)
                 var memory = Memory.get_mem(addr);
@@ -713,6 +715,11 @@ var Runtime = (function () {
                 } else {
                     registers["PC"] = registers["PC"] + 4;
                 }
+
+                // Update the io module
+                if (io) {
+                    io.update();
+                }
             } catch (e) {
                 // Set the error object and note that we exited
                 error = e;
@@ -737,12 +744,10 @@ var Runtime = (function () {
 
                 if (breakpoints.indexOf(line) !== -1 && PC_hex == Utils.Math.to_hex(inst.raw.base)) {
                     breaked = true;
-                    debugger;
                     return true;
                 }
             }
 
-            debugger;
             return false;
         }
         
@@ -819,6 +824,11 @@ var Runtime = (function () {
             breakpoints = [];
             breaked = false;
 
+            // Reset the io
+            if (io) {
+                io.reset();
+            }
+
             // Return out the clean state
             return get_state();
         };
@@ -844,8 +854,9 @@ var Runtime = (function () {
                 output: output,
                 current_inst: current_inst,
                 breakpoints: breakpoints,
-                breaked: breaked
-            }
+                breaked: breaked,
+                io: io
+            };
         };
 
         // Run the reset function once to initalize.

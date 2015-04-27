@@ -196,14 +196,14 @@ body {
     position: absolute;
     left: 0px;
     top: 0px;
-    width: 300px;
+    width: 320px;
 }
 
 .runscreen .right {
     position: absolute;
-    left: 300px;
+    left: 320px;
     top: 0px;
-    width: calc(100% - 300px);
+    width: calc(100% - 320px);
     height: 100%;
     overflow: auto;
 }
@@ -267,8 +267,15 @@ body {
     }
 
     .sidebar textarea {
-        width: 100%;
+        width: 98%;
         height: 150px;
+    }
+
+    .sidebar .floater_button {
+        width: 150px;
+        margin-bottom: 8px;
+        margin-top: 6px;
+        font-size: 14pt;
     }
 
 .word_display {

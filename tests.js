@@ -577,6 +577,22 @@ define(function () {
         }
     });
 
+    // Test basic IO interaction
+    tests.push({
+        name: "Basic IO",
+        test: function (MIPS) {
+            var text = "addr = 0xFFFF0000\n.text\nmain:\nli $t0 2990\nsw $t0 addr\n\nloop:\nlw $t0 addr\nbne $t0 0 loop\n\nend:\njr $ra";
+
+            var parse = MIPS.Parser.parse(text);
+            var runtime = MIPS.Runtime.create(parse.data, parse.text, basic_io.create());
+            var state = runtime.run_to_end();
+            var registers = state.registers;
+
+            assert.equals(registers["$8"], 0);
+            assert.equals(state.cycles, 3000);
+        }
+    });
+
     // Runs the tests
     var run_tests = function (MIPS) {
         console.log("Running tests...");
