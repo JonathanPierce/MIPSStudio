@@ -149,14 +149,11 @@ var Utils = (function () {
                 } else {
                     // Special characters like \n
                     if (unescaped === "'\\n'") {
-                        return "\n".charCodeAt(0)
+                        return "\n".charCodeAt(0);
                     }
                     if (unescaped === "'\\t'") {
-                        return "\t".charCodeAt(0)
+                        return "\t".charCodeAt(0);
                     }
-
-                    // No match? FAIL.
-                    throw get_error(0, [input, line]);
                 }
             }
 

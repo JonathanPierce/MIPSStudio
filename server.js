@@ -23,7 +23,7 @@ var get_file = function (path, callback) {
         
         // Return the data
         callback(data);
-    })
+    });
 };
 
 // Gets a true MIME for a path

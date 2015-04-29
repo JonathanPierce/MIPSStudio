@@ -119,14 +119,14 @@ var Runtime = (function () {
 
                 // TODO: Throw an exception on overflow
 
-                write_register(dest, signed_reg + signed_imm);
+                write_register(dest, sum);
 
                 return { set_PC: false };
             },
 
             "addiu": function (args) {
                 // Just do addi for now
-                return programd.addi(args);
+                return programs.addi(args);
             },
 
             "add": function (args) {
@@ -539,15 +539,15 @@ var Runtime = (function () {
 
                 if (v0 === 11) {
                     // Print a character from $a0's low byte
-                    var byte = Utils.Math.to_unsigned(registers["$4"], 32) & 0x000000FF;
-                    var char = String.fromCharCode(byte);
+                    byte = Utils.Math.to_unsigned(registers["$4"], 32) & 0x000000FF;
+                    char = String.fromCharCode(byte);
 
                     output += char;
                 }
 
                 return { set_PC: false };
             }
-        }
+        };
 
         // Executes a single instruction
         var run_instruction = function (to_execute) {
@@ -749,7 +749,7 @@ var Runtime = (function () {
             }
 
             return false;
-        }
+        };
         
         // Runs n instructions
         var run_n = function (n) {

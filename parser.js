@@ -1,3 +1,4 @@
+/* global TextParser */
 var Parser = (function () {
     // Constants
     var regex_useless = /;|,|\r|\v|\f|(^\s*\n)|^\s+/gim;

@@ -1,3 +1,4 @@
+/* global Utils */
 // Module for parsing a data segment
 var DataParser = (function () {
     // Constants
@@ -49,7 +50,7 @@ var DataParser = (function () {
 
         // Validate arguments
         for (var i = 0; i < raw.length; i++) {
-            var current = raw[i].args;
+            current = raw[i].args;
             var type = raw[i].type;
 
             // Certain types can only have one argument
@@ -93,7 +94,7 @@ var DataParser = (function () {
 
             if (line.type === "half") {
                 return 2 * line.args.length;
-                var mod = prev % 2;
+                mod = prev % 2;
                 if (mod === 0) {
                     return pre_padding;
                 } else {
@@ -119,7 +120,7 @@ var DataParser = (function () {
 
             if (line.type === "align") {
                 var modulus = Math.pow(2, line.args[0]);
-                var mod = prev % modulus;
+                mod = prev % modulus;
                 if (mod == 0) {
                     return 0;
                 } else {
@@ -197,7 +198,6 @@ var DataParser = (function () {
         for (var i = 0; i < raw.length; i++) {
             var type = raw[i].type;
             var args = raw[i].args;
-            var base = raw[i].base;
             var space = raw[i].space;
 
             // Fill any padding
@@ -238,7 +238,7 @@ var DataParser = (function () {
             if (type === "half") {
                 // Little endianize each half
                 for (var j = 0; j < args.length; j++) {
-                    var bytes = Utils.Math.split_to_bytes(args[j], 2);
+                    bytes = Utils.Math.split_to_bytes(args[j], 2);
 
                     for (var k = 0; k < bytes.length; k++) {
                         final[Utils.Math.to_hex(address)] = bytes[k];

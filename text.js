@@ -24,7 +24,7 @@ var TextParser = (function () {
             }
 
             return true;
-        }
+        };
 
         // Validate each instruction
         for (var i = 0; i < raw.length; i++) {
@@ -73,7 +73,7 @@ var TextParser = (function () {
     // Validates and converts individual (pseudo)instructions (returns 'null' on failure)
     var Insts = {
         "add": function (args, unsigned) {
-            var unsigned = unsigned ? "u" : "";
+            unsigned = unsigned ? "u" : "";
 
             // Correct args length?
             if(args.length !== 3) {
@@ -170,7 +170,7 @@ var TextParser = (function () {
         },
 
         "sub": function (args, unsigned) {
-            var unsigned = unsigned ? "u" : "";
+            unsigned = unsigned ? "u" : "";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -437,7 +437,7 @@ var TextParser = (function () {
         },
 
         "and": function (args, final) {
-            var final = final || "and";
+            final = final || "and";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -486,7 +486,7 @@ var TextParser = (function () {
         },
 
         "andi": function (args, final) {
-            var final = final || "andi";
+            final = final || "andi";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -518,7 +518,7 @@ var TextParser = (function () {
         },
 
         "xor": function (args, final) {
-            var final = final || "xor";
+            final = final || "xor";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -927,7 +927,7 @@ var TextParser = (function () {
 
         "lw": function (args, final) {
             // Set the final instruction
-            var final = final || "lw";
+            final = final || "lw";
 
             // Correct args length?
             if (args.length < 2 || args.length > 3) {
@@ -1389,13 +1389,13 @@ var TextParser = (function () {
 
             if (current[i].inst === "ori") {
                 // Data label at args[2]?
-                var label = Utils.Parser.is_label(current[i].args[2]);
+                label = Utils.Parser.is_label(current[i].args[2]);
                 if (!label) {
                     continue;
                 }
 
                 // Fail if unmatched label
-                var val_or_null = Utils.get(data_labels, label);
+                val_or_null = Utils.get(data_labels, label);
                 if (val_or_null === null) {
                     // FAIL
                     throw Utils.get_error(8, [label, line.line]);
@@ -1407,13 +1407,13 @@ var TextParser = (function () {
 
             if (current[i].inst === "jal" || current[i].inst === "j") {
                 // Text label at args[0]?
-                var label = Utils.Parser.is_label(current[i].args[0]);
+                label = Utils.Parser.is_label(current[i].args[0]);
                 if (!label) {
                     continue;
                 }
 
                 // Fail if unmatched label
-                var val_or_null = Utils.get(text_labels, label);
+                val_or_null = Utils.get(text_labels, label);
                 if (val_or_null === null) {
                     // FAIL
                     throw Utils.get_error(8, [label, line.line]);
@@ -1425,13 +1425,13 @@ var TextParser = (function () {
 
             if (current[i].inst === "bne" || current[i].inst === "beq") {
                 // Text label at args[2]?
-                var label = Utils.Parser.is_label(current[i].args[2]);
+                label = Utils.Parser.is_label(current[i].args[2]);
                 if (!label) {
                     continue;
                 }
 
                 // Fail if unmatched label
-                var val_or_null = Utils.get(text_labels, label);
+                val_or_null = Utils.get(text_labels, label);
                 if (val_or_null === null) {
                     // FAIL
                     throw Utils.get_error(8, [label, line.line]);

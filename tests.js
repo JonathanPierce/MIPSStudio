@@ -31,7 +31,7 @@ define(function () {
                 throw "Array has length " + test.length + " instead of the expected " + length + ".";
             }
         }
-    }
+    };
 
     // Create the tests { name: "string", test: function(MIPS){} }
     var tests = [];
@@ -617,10 +617,10 @@ define(function () {
         } else {
             console.log("Some failures. " + success_count + "  out of " + tests.length + " tests passed.");
         }
-    }
+    };
 
     // Return out the interface
     return {
         run_tests: run_tests
-    }
+    };
 });

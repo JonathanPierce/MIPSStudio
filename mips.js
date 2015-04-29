@@ -150,14 +150,11 @@ define(function() {
                 } else {
                     // Special characters like \n
                     if (unescaped === "'\\n'") {
-                        return "\n".charCodeAt(0)
+                        return "\n".charCodeAt(0);
                     }
                     if (unescaped === "'\\t'") {
-                        return "\t".charCodeAt(0)
+                        return "\t".charCodeAt(0);
                     }
-
-                    // No match? FAIL.
-                    throw get_error(0, [input, line]);
                 }
             }
 
@@ -479,7 +476,7 @@ define(function() {
             }
 
             return true;
-        }
+        };
 
         // Validate each instruction
         for (var i = 0; i < raw.length; i++) {
@@ -528,7 +525,7 @@ define(function() {
     // Validates and converts individual (pseudo)instructions (returns 'null' on failure)
     var Insts = {
         "add": function (args, unsigned) {
-            var unsigned = unsigned ? "u" : "";
+            unsigned = unsigned ? "u" : "";
 
             // Correct args length?
             if(args.length !== 3) {
@@ -625,7 +622,7 @@ define(function() {
         },
 
         "sub": function (args, unsigned) {
-            var unsigned = unsigned ? "u" : "";
+            unsigned = unsigned ? "u" : "";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -892,7 +889,7 @@ define(function() {
         },
 
         "and": function (args, final) {
-            var final = final || "and";
+            final = final || "and";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -941,7 +938,7 @@ define(function() {
         },
 
         "andi": function (args, final) {
-            var final = final || "andi";
+            final = final || "andi";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -973,7 +970,7 @@ define(function() {
         },
 
         "xor": function (args, final) {
-            var final = final || "xor";
+            final = final || "xor";
 
             // Correct args length?
             if (args.length !== 3) {
@@ -1382,7 +1379,7 @@ define(function() {
 
         "lw": function (args, final) {
             // Set the final instruction
-            var final = final || "lw";
+            final = final || "lw";
 
             // Correct args length?
             if (args.length < 2 || args.length > 3) {
@@ -1844,13 +1841,13 @@ define(function() {
 
             if (current[i].inst === "ori") {
                 // Data label at args[2]?
-                var label = Utils.Parser.is_label(current[i].args[2]);
+                label = Utils.Parser.is_label(current[i].args[2]);
                 if (!label) {
                     continue;
                 }
 
                 // Fail if unmatched label
-                var val_or_null = Utils.get(data_labels, label);
+                val_or_null = Utils.get(data_labels, label);
                 if (val_or_null === null) {
                     // FAIL
                     throw Utils.get_error(8, [label, line.line]);
@@ -1862,13 +1859,13 @@ define(function() {
 
             if (current[i].inst === "jal" || current[i].inst === "j") {
                 // Text label at args[0]?
-                var label = Utils.Parser.is_label(current[i].args[0]);
+                label = Utils.Parser.is_label(current[i].args[0]);
                 if (!label) {
                     continue;
                 }
 
                 // Fail if unmatched label
-                var val_or_null = Utils.get(text_labels, label);
+                val_or_null = Utils.get(text_labels, label);
                 if (val_or_null === null) {
                     // FAIL
                     throw Utils.get_error(8, [label, line.line]);
@@ -1880,13 +1877,13 @@ define(function() {
 
             if (current[i].inst === "bne" || current[i].inst === "beq") {
                 // Text label at args[2]?
-                var label = Utils.Parser.is_label(current[i].args[2]);
+                label = Utils.Parser.is_label(current[i].args[2]);
                 if (!label) {
                     continue;
                 }
 
                 // Fail if unmatched label
-                var val_or_null = Utils.get(text_labels, label);
+                val_or_null = Utils.get(text_labels, label);
                 if (val_or_null === null) {
                     // FAIL
                     throw Utils.get_error(8, [label, line.line]);
@@ -1947,7 +1944,8 @@ define(function() {
     };
 })();
     
-    // Module for parsing a data segment
+    /* global Utils */
+// Module for parsing a data segment
 var DataParser = (function () {
     // Constants
     var base_address = Utils.Parser.const_to_val("0x10000000");
@@ -1998,7 +1996,7 @@ var DataParser = (function () {
 
         // Validate arguments
         for (var i = 0; i < raw.length; i++) {
-            var current = raw[i].args;
+            current = raw[i].args;
             var type = raw[i].type;
 
             // Certain types can only have one argument
@@ -2042,7 +2040,7 @@ var DataParser = (function () {
 
             if (line.type === "half") {
                 return 2 * line.args.length;
-                var mod = prev % 2;
+                mod = prev % 2;
                 if (mod === 0) {
                     return pre_padding;
                 } else {
@@ -2068,7 +2066,7 @@ var DataParser = (function () {
 
             if (line.type === "align") {
                 var modulus = Math.pow(2, line.args[0]);
-                var mod = prev % modulus;
+                mod = prev % modulus;
                 if (mod == 0) {
                     return 0;
                 } else {
@@ -2146,7 +2144,6 @@ var DataParser = (function () {
         for (var i = 0; i < raw.length; i++) {
             var type = raw[i].type;
             var args = raw[i].args;
-            var base = raw[i].base;
             var space = raw[i].space;
 
             // Fill any padding
@@ -2187,7 +2184,7 @@ var DataParser = (function () {
             if (type === "half") {
                 // Little endianize each half
                 for (var j = 0; j < args.length; j++) {
-                    var bytes = Utils.Math.split_to_bytes(args[j], 2);
+                    bytes = Utils.Math.split_to_bytes(args[j], 2);
 
                     for (var k = 0; k < bytes.length; k++) {
                         final[Utils.Math.to_hex(address)] = bytes[k];
@@ -2256,7 +2253,8 @@ var DataParser = (function () {
     };
 })();
     
-    var Parser = (function () {
+    /* global TextParser */
+var Parser = (function () {
     // Constants
     var regex_useless = /;|,|\r|\v|\f|(^\s*\n)|^\s+/gim;
     var regex_spaces = /\ \ +|\t+/gmi;
@@ -2645,14 +2643,14 @@ var Runtime = (function () {
 
                 // TODO: Throw an exception on overflow
 
-                write_register(dest, signed_reg + signed_imm);
+                write_register(dest, sum);
 
                 return { set_PC: false };
             },
 
             "addiu": function (args) {
                 // Just do addi for now
-                return programd.addi(args);
+                return programs.addi(args);
             },
 
             "add": function (args) {
@@ -3065,15 +3063,15 @@ var Runtime = (function () {
 
                 if (v0 === 11) {
                     // Print a character from $a0's low byte
-                    var byte = Utils.Math.to_unsigned(registers["$4"], 32) & 0x000000FF;
-                    var char = String.fromCharCode(byte);
+                    byte = Utils.Math.to_unsigned(registers["$4"], 32) & 0x000000FF;
+                    char = String.fromCharCode(byte);
 
                     output += char;
                 }
 
                 return { set_PC: false };
             }
-        }
+        };
 
         // Executes a single instruction
         var run_instruction = function (to_execute) {
@@ -3275,7 +3273,7 @@ var Runtime = (function () {
             }
 
             return false;
-        }
+        };
         
         // Runs n instructions
         var run_n = function (n) {
